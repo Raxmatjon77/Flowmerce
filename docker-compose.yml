@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # ─── Databases ───────────────────────────────────────────
+  order-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: order_user
+      POSTGRES_PASSWORD: order_pass
+      POSTGRES_DB: order_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - order_data:/var/lib/postgresql/data
+
+  payment-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_pass
+      POSTGRES_DB: payment_db
+    ports:
+      - '5433:5432'
+    volumes:
+      - payment_data:/var/lib/postgresql/data
+
+  inventory-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_pass
+      POSTGRES_DB: inventory_db
+    ports:
+      - '5434:5432'
+    volumes:
+      - inventory_data:/var/lib/postgresql/data
+
+  shipping-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: shipping_user
+      POSTGRES_PASSWORD: shipping_pass
+      POSTGRES_DB: shipping_db
+    ports:
+      - '5435:5432'
+    volumes:
+      - shipping_data:/var/lib/postgresql/data
+
+  notification-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: notification_user
+      POSTGRES_PASSWORD: notification_pass
+      POSTGRES_DB: notification_db
+    ports:
+      - '5436:5432'
+    volumes:
+      - notification_data:/var/lib/postgresql/data
+
+  # ─── Kafka ───────────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - '2181:2181'
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+  # ─── Temporal ────────────────────────────────────────────
+  temporal-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - '5437:5432'
+    volumes:
+      - temporal_data:/var/lib/postgresql/data
+
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    depends_on:
+      - temporal-db
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-db
+    ports:
+      - '7233:7233'
+
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - '8233:8080'
+
+volumes:
+  order_data:
+  payment_data:
+  inventory_data:
+  shipping_data:
+  notification_data:
+  temporal_data:

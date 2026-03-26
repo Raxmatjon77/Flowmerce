@@ -1,0 +1,32 @@
+import { Module } from '@nestjs/common';
+import { KafkaModule } from '@shared/infrastructure/kafka/kafka.module';
+import { TemporalModule } from '@shared/infrastructure/temporal/temporal.module';
+import { OrderModule } from '@order/order.module';
+import { PaymentModule } from '@payment/payment.module';
+import { InventoryModule } from '@inventory/inventory.module';
+import { ShippingModule } from '@shipping/shipping.module';
+import { NotificationModule } from '@notification/notification.module';
+
+@Module({
+  imports: [
+    // Global infrastructure modules
+    KafkaModule.forRoot({
+      brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
+      clientId: process.env.KAFKA_CLIENT_ID || 'distributed-order-platform',
+    }),
+
+    // Temporal is async — uses forRoot which returns a Promise<DynamicModule>
+    TemporalModule.forRoot({
+      address: process.env.TEMPORAL_ADDRESS || 'localhost:7233',
+      namespace: process.env.TEMPORAL_NAMESPACE || 'default',
+    }),
+
+    // Feature modules
+    OrderModule,
+    PaymentModule,
+    InventoryModule,
+    ShippingModule,
+    NotificationModule,
+  ],
+})
+export class AppModule {}

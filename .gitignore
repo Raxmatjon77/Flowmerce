@@ -5,3 +5,16 @@ dist/
 *.d.ts
 !jest.config.ts
 coverage/
+*.log
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+*.bak
+*.tmp
+*.tsbuildinfo
+*.eslintcache
+*.prettiercache
+*.tsconfig.tsbuildinfo
+*.eslintcache

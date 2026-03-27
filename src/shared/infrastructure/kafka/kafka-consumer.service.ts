@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Consumer, Kafka, EachMessagePayload } from 'kafkajs';
-import { KAFKA_CLIENT } from './kafka.module';
+import { KAFKA_CLIENT } from './kafka.constants';
 
 export interface ConsumeOptions {
   topic: string;

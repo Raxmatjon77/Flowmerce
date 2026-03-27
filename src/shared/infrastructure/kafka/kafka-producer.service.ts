@@ -1,6 +1,6 @@
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
-import { KAFKA_CLIENT } from './kafka.module';
+import { KAFKA_CLIENT } from './kafka.constants';
 
 export interface KafkaMessage {
   topic: string;

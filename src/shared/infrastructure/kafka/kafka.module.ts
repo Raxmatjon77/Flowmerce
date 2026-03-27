@@ -1,8 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { KafkaProducerService } from './kafka-producer.service';
 import { Kafka } from 'kafkajs';
-
-export const KAFKA_CLIENT = Symbol('KAFKA_CLIENT');
+import { KAFKA_CLIENT } from './kafka.constants';
 
 export interface KafkaModuleOptions {
   brokers: string[];

@@ -8,7 +8,10 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { Idempotent, IdempotencyGuard, IdempotencyInterceptor } from '@shared/infrastructure/idempotency';
 import { CreateOrderUseCase } from '@order/application/use-cases/create-order/create-order.use-case';
 import { GetOrderUseCase } from '@order/application/use-cases/get-order/get-order.use-case';
 import { ConfirmOrderUseCase } from '@order/application/use-cases/confirm-order/confirm-order.use-case';
@@ -33,6 +36,9 @@ export class OrderController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Idempotent()
+  @UseGuards(IdempotencyGuard)
+  @UseInterceptors(IdempotencyInterceptor)
   async createOrder(
     @Body() request: CreateOrderRequest,
   ): Promise<OrderResponseDto> {

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { KafkaModule } from '@shared/infrastructure/kafka/kafka.module';
 import { TemporalModule } from '@shared/infrastructure/temporal/temporal.module';
+import { IdempotencyModule } from '@shared/infrastructure/idempotency';
+import { HealthModule } from './health/health.module';
 import { OrderModule } from '@order/order.module';
 import { PaymentModule } from '@payment/payment.module';
 import { InventoryModule } from '@inventory/inventory.module';
@@ -9,6 +11,12 @@ import { NotificationModule } from '@notification/notification.module';
 
 @Module({
   imports: [
+    // Health checks (no dependencies, loads first)
+    HealthModule,
+
+    // Idempotency (global module)
+    IdempotencyModule,
+
     // Global infrastructure modules
     KafkaModule.forRoot({
       brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),

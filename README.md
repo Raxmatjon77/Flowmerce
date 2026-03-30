@@ -1,4 +1,4 @@
-# Distributed Order & Fulfillment Platform
+# Flowmerce — Distributed Order & Fulfillment Platform
 
 A production-grade distributed system for order processing, built with **NestJS**, **Temporal**, **Kafka**, and **PostgreSQL**. Designed as a learning project for understanding distributed systems patterns, saga orchestration, and event-driven architecture.
 
@@ -10,6 +10,8 @@ A production-grade distributed system for order processing, built with **NestJS*
 - **Outbox Pattern** for reliable event publishing
 - **Compensation Logic** for failure rollback
 - **Dead Letter Queue (DLQ)** handling
+- **Health Checks** for Kubernetes readiness/liveness
+- **Idempotency Keys** for safe request retries
 
 ---
 
@@ -111,18 +113,6 @@ if (shipmentFails) {
 }
 ```
 
-### Signal-Based Confirmation
-
-The workflow waits for an external confirmation signal before shipping:
-
-```typescript
-// Send confirmation signal via Temporal API
-await client.workflow.signalWithStart('orderProcessingWorkflow', {
-  signal: 'confirmOrder',
-  signalArgs: [],
-});
-```
-
 ---
 
 ## 🛠️ Tech Stack
@@ -145,24 +135,20 @@ src/
 ├── app.module.ts                 # Root module
 ├── main.ts                       # Entry point
 │
+├── health/                       # Health check endpoints
+│   ├── health.module.ts
+│   ├── presentation/controllers/
+│   └── infrastructure/indicators/
+│
+├── worker/                       # Temporal worker (separate process)
+│   ├── worker.module.ts
+│   └── worker.ts
+│
 ├── order/                        # Order bounded context
 │   ├── domain/                   # Business logic (entities, value objects)
-│   │   ├── entities/
-│   │   ├── value-objects/
-│   │   ├── events/
-│   │   ├── errors/
-│   │   └── repositories/        # Repository interfaces
 │   ├── application/              # Use cases, DTOs, ports
-│   │   ├── use-cases/
-│   │   ├── dtos/
-│   │   └── ports/               # External service interfaces
-│   ├── infrastructure/           # Implementations
-│   │   ├── database/            # Kysely repositories
-│   │   ├── kafka/               # Event publishers
-│   │   ├── temporal/            # Workflows & activities
-│   │   └── adapters/            # External service adapters
+│   ├── infrastructure/           # DB, Kafka, Temporal, adapters
 │   └── presentation/             # Controllers
-│       └── controllers/
 │
 ├── payment/                      # Same structure
 ├── inventory/                    # Same structure
@@ -170,23 +156,13 @@ src/
 ├── notification/                 # Same structure
 │
 └── shared/                       # Cross-cutting concerns
-    ├── domain/                   # Base classes (Entity, ValueObject, etc.)
+    ├── domain/                   # Base classes (Entity, ValueObject)
     ├── application/              # Interfaces (EventPublisher, UseCase)
-    ├── infrastructure/
-    │   ├── database/            # Kysely module
-    │   ├── kafka/               # Producer, Consumer, Outbox
-    │   └── temporal/            # Temporal module
-    └── presentation/             # Filters, interceptors
-```
-
-### Layer Dependencies (Clean Architecture)
-
-```
-Infrastructure → Application → Domain
-      │               │            │
-      │               │            └── No external dependencies
-      │               └── Only depends on Domain
-      └── Implements interfaces from Application/Domain
+    └── infrastructure/
+        ├── database/             # Kysely module
+        ├── kafka/                # Producer, Consumer, Outbox
+        ├── temporal/             # Temporal client module
+        └── idempotency/          # Idempotency key handling
 ```
 
 ---
@@ -197,95 +173,122 @@ Infrastructure → Application → Domain
 
 - Node.js 20+
 - Docker & Docker Compose
-- Kafka running on `localhost:9092` (or use Docker)
+- Kafka running on `localhost:9092`
 
 ### 1. Clone & Install
 
 ```bash
-cd ~/coding/learning-pros/distrubuted-order
+git clone https://github.com/Raxmatjon77/Flowmerce.git
+cd Flowmerce
 npm install
 ```
 
 ### 2. Start Infrastructure
 
 ```bash
-# Start databases + Temporal
-docker-compose up -d
+# Start databases + Temporal + Temporal UI
+docker compose up -d
 
 # Verify services are running
-docker-compose ps
+docker compose ps
 ```
 
 ### 3. Configure Environment
 
 ```bash
 cp .env.example .env
-# Edit .env if needed
 ```
 
-### 4. Run Migrations
+### 4. Run Migrations & Seed Data
 
 ```bash
 npm run migrate:all
+npm run seed:inventory
 ```
 
 ### 5. Start the Application
 
 ```bash
-# Start NestJS app
-npm run start:dev
+# Terminal 1: Start NestJS API
+npm run start
 
-# In another terminal, start Temporal worker
-npm run temporal:worker
+# Terminal 2: Start Temporal Worker
+npm run worker
 ```
 
 ### 6. Access UIs
 
-- **API:** http://localhost:3000
-- **Temporal UI:** http://localhost:8233
+| Service | URL |
+|---------|-----|
+| **API** | http://localhost:3000 |
+| **Health Check** | http://localhost:3000/health |
+| **Temporal UI** | http://localhost:8233 |
 
 ---
 
 ## 🔌 API Endpoints
 
-### Create Order
+### Health Checks
 
 ```bash
-POST /orders
-Content-Type: application/json
-
-{
-  "customerId": "cust-123",
-  "items": [
-    { "sku": "SKU-001", "quantity": 2, "unitPrice": 29.99 }
-  ],
-  "shippingAddress": {
-    "street": "123 Main St",
-    "city": "San Francisco",
-    "state": "CA",
-    "zipCode": "94102",
-    "country": "US"
-  },
-  "paymentMethod": {
-    "type": "CREDIT_CARD",
-    "last4Digits": "4242",
-    "expiryMonth": 12,
-    "expiryYear": 2027
-  }
-}
+GET /health          # Full health (DB, Kafka, Temporal, Memory)
+GET /health/live     # Liveness probe (is process alive?)
+GET /health/ready    # Readiness probe (can accept traffic?)
 ```
 
-### Confirm Order (via Temporal signal)
+### Orders
 
 ```bash
-POST /orders/:orderId/confirm
+POST   /api/v1/orders              # Create order
+GET    /api/v1/orders/:id          # Get order by ID
+POST   /api/v1/orders/:id/confirm  # Confirm order (Temporal signal)
+POST   /api/v1/orders/:id/cancel   # Cancel order
 ```
 
-### Get Order
+### Create Order Example
 
 ```bash
-GET /orders/:orderId
+curl -X POST http://localhost:3000/api/v1/orders \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{
+    "customerId": "cust-001",
+    "items": [
+      {
+        "productId": "SKU-LAPTOP-001",
+        "productName": "MacBook Pro 14",
+        "quantity": 1,
+        "unitPrice": 1999.99
+      }
+    ],
+    "shippingAddress": {
+      "street": "123 Main St",
+      "city": "Tashkent",
+      "state": "Tashkent",
+      "zipCode": "100000",
+      "country": "UZ"
+    }
+  }'
 ```
+
+---
+
+## 🔑 Idempotency Keys
+
+Prevent duplicate order processing by sending `Idempotency-Key` header:
+
+```bash
+curl -X POST /api/v1/orders \
+  -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Content-Type: application/json" \
+  -d '...'
+```
+
+**Behavior:**
+- First request: Creates order, caches response
+- Same key again: Returns cached response (with `X-Idempotency-Replayed: true`)
+- Concurrent requests with same key: Returns `409 Conflict`
+- Keys expire after 24 hours
 
 ---
 
@@ -293,10 +296,7 @@ GET /orders/:orderId
 
 ### 1. Saga Pattern (Temporal)
 
-Orchestrated saga with explicit compensation:
-
 ```typescript
-// workflow
 const compensations: Array<() => Promise<void>> = [];
 
 await activities.reserveInventory(orderId, items);
@@ -305,18 +305,15 @@ compensations.push(() => activities.releaseInventory(orderId, items));
 await activities.processPayment(orderId, amount);
 compensations.push(() => activities.refundPayment(paymentId));
 
-// On failure
+// On failure — execute compensations in LIFO order
 for (const comp of compensations.reverse()) {
-  await comp();  // LIFO execution
+  await comp();
 }
 ```
 
 ### 2. Outbox Pattern (Kafka)
 
-Guarantees atomicity between database writes and event publishing:
-
 ```typescript
-// 1. Write to DB + outbox in same transaction
 await db.transaction().execute(async (trx) => {
   await trx.insertInto('orders').values(order).execute();
   await trx.insertInto('outbox_events').values({
@@ -325,122 +322,86 @@ await db.transaction().execute(async (trx) => {
     published: false,
   }).execute();
 });
-
-// 2. Background poller publishes to Kafka
-// SELECT * FROM outbox_events WHERE published = false FOR UPDATE SKIP LOCKED
-// → Publish to Kafka → Mark as published
+// Background poller publishes to Kafka
 ```
 
-### 3. Dead Letter Queue (DLQ)
-
-Failed messages after max retries go to DLQ:
+### 3. Health Checks
 
 ```typescript
-if (retryCount >= maxRetries) {
-  await producer.send({
-    topic: 'order.events.dlq',
-    messages: [{ ...message, headers: { 'x-error': error.message } }],
-  });
+@Get('ready')
+@HealthCheck()
+async readiness() {
+  return this.health.check([
+    () => this.database.isHealthy('database'),
+    () => this.temporal.isHealthy('temporal'),
+  ]);
 }
 ```
 
-### 4. Retry with Backoff (Temporal)
+### 4. Idempotency
 
 ```typescript
-const activities = proxyActivities<OrderActivities>({
-  startToCloseTimeout: '30s',
-  retry: {
-    maximumAttempts: 3,
-    initialInterval: '1s',
-    backoffCoefficient: 2,  // 1s → 2s → 4s
-  },
-});
+@Post()
+@Idempotent()
+@UseGuards(IdempotencyGuard)
+@UseInterceptors(IdempotencyInterceptor)
+async createOrder(@Body() dto: CreateOrderDto) {
+  // ...
+}
 ```
 
 ---
 
-## 🧪 Testing Failure Scenarios
-
-### 1. Payment Failure
+## 🧪 NPM Scripts
 
 ```bash
-# Simulate payment failure (mock returns error for amount > 1000)
-POST /orders
-{ "items": [{ "unitPrice": 1001 }] }
-
-# Expected: Inventory released, order cancelled
-```
-
-### 2. Confirmation Timeout
-
-```bash
-# Create order but don't confirm
-POST /orders
-
-# Wait 24h (or adjust timeout for testing)
-# Expected: Auto-cancel, compensation executed
-```
-
-### 3. Kafka Down
-
-```bash
-# Stop Kafka
-docker-compose stop kafka
-
-# Create order
-# Expected: Outbox stores event, publishes when Kafka recovers
+npm run start           # Start API server
+npm run start:dev       # Start with watch mode
+npm run worker          # Start Temporal worker
+npm run worker:dev      # Start worker with watch mode
+npm run build           # Build for production
+npm run migrate:all     # Run all database migrations
+npm run seed:inventory  # Seed inventory data
+npm run test:order      # Test order creation flow
 ```
 
 ---
 
-## 📊 Monitoring
+## 📊 Kubernetes Deployment
 
-### Temporal UI
+### Liveness & Readiness Probes
 
-- View running workflows
-- Inspect workflow history
-- See retry attempts and failures
-- Send signals manually
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 5
 
-Access: http://localhost:8233
-
-### Kafka Topics
-
-```bash
-# List topics
-kafka-topics.sh --list --bootstrap-server localhost:9092
-
-# Consume events
-kafka-console-consumer.sh --topic order.events --bootstrap-server localhost:9092 --from-beginning
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 10
 ```
 
 ---
 
-## 🎓 Learning Objectives
+## 🚧 Roadmap
 
-This project teaches:
-
-| Concept | Where to Look |
-|---------|---------------|
-| **Saga Orchestration** | `src/order/infrastructure/temporal/workflows/` |
-| **Compensation Logic** | `orderProcessingWorkflow` catch block |
-| **Clean Architecture** | Any service's `domain/` vs `infrastructure/` |
-| **Outbox Pattern** | `src/shared/infrastructure/kafka/outbox/` |
-| **Event-Driven Design** | `*-event-publisher.ts` files |
-| **DLQ Handling** | `kafka-consumer.service.ts` |
-| **Type-Safe Queries** | Any `*.repository.ts` using Kysely |
-
----
-
-## 🚧 What's Next (Improvement Ideas)
-
-- [ ] Add integration tests with Testcontainers
-- [ ] Implement idempotency keys in consumers
-- [ ] Add distributed tracing (OpenTelemetry)
-- [ ] Implement circuit breaker pattern
-- [ ] Add Kubernetes manifests
-- [ ] Implement CQRS for read optimization
-- [ ] Add metrics (Prometheus + Grafana)
+- [x] Health check endpoints
+- [x] Idempotency keys
+- [ ] Distributed tracing (OpenTelemetry)
+- [ ] Structured logging (JSON)
+- [ ] Rate limiting
+- [ ] Authentication/Authorization (JWT)
+- [ ] Circuit breaker pattern
+- [ ] Prometheus metrics
+- [ ] Integration tests (Testcontainers)
+- [ ] Kubernetes manifests
+- [ ] CQRS for read optimization
 
 ---
 
@@ -449,9 +410,9 @@ This project teaches:
 - [Temporal Documentation](https://docs.temporal.io/)
 - [KafkaJS Documentation](https://kafka.js.org/)
 - [Kysely Documentation](https://kysely.dev/)
-- [Clean Architecture by Robert C. Martin](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [Saga Pattern - Microsoft](https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/saga/saga)
-- [Outbox Pattern - Microservices.io](https://microservices.io/patterns/data/transactional-outbox.html)
+- [Outbox Pattern](https://microservices.io/patterns/data/transactional-outbox.html)
 
 ---
 

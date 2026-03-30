@@ -18,13 +18,18 @@
     "migrate:inventory": "ts-node src/inventory/infrastructure/database/migrations/run.ts",
     "migrate:shipping": "ts-node src/shipping/infrastructure/database/migrations/run.ts",
     "migrate:notification": "ts-node src/notification/infrastructure/database/migrations/run.ts",
-    "migrate:all": "npm run migrate:order && npm run migrate:payment && npm run migrate:inventory && npm run migrate:shipping && npm run migrate:notification",
-    "temporal:worker": "ts-node src/shared/infrastructure/temporal/worker.ts"
+    "migrate:all": "ts-node scripts/migrate.ts all",
+    "seed:inventory": "ts-node scripts/seed-inventory.ts",
+    "test:order": "bash scripts/test-order.sh",
+    "worker": "ts-node -r tsconfig-paths/register src/worker/worker.ts",
+    "worker:dev": "ts-node-dev -r tsconfig-paths/register --respawn src/worker/worker.ts",
+    "worker:prod": "node dist/worker/worker.js"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
     "@nestjs/core": "^10.3.0",
     "@nestjs/platform-express": "^10.3.0",
+    "@nestjs/terminus": "^11.1.1",
     "@temporalio/activity": "^1.9.0",
     "@temporalio/client": "^1.9.0",
     "@temporalio/worker": "^1.9.0",

@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import {
   IsString,
   IsNotEmpty,
@@ -8,6 +8,7 @@ import {
   ValidateNested,
   ArrayMinSize,
   Min,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateOrderItemRequest {
@@ -29,8 +30,9 @@ export class CreateOrderItemRequest {
   unitPrice!: number;
 
   @IsString()
-  @IsNotEmpty()
-  currency!: string;
+  @IsOptional()
+  @Transform(({ value }) => value || 'USD')
+  currency: string = 'USD';
 }
 
 export class CreateOrderShippingAddressRequest {

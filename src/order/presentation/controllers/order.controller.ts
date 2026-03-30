@@ -9,17 +9,12 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Client } from '@temporalio/client';
-import { TEMPORAL_CLIENT } from '@shared/infrastructure/temporal/temporal.module';
 import { CreateOrderUseCase } from '@order/application/use-cases/create-order/create-order.use-case';
 import { GetOrderUseCase } from '@order/application/use-cases/get-order/get-order.use-case';
+import { ConfirmOrderUseCase } from '@order/application/use-cases/confirm-order/confirm-order.use-case';
 import { CancelOrderUseCase } from '@order/application/use-cases/cancel-order/cancel-order.use-case';
 import { OrderResponseDto } from '@order/application/dtos/order-response.dto';
 import { CreateOrderRequest } from '../dto/create-order.request';
-import {
-  orderProcessingWorkflow,
-  confirmOrderSignal,
-} from '@order/infrastructure/temporal/workflows/order-processing.workflow';
 
 @Controller('api/v1/orders')
 export class OrderController {
@@ -30,10 +25,10 @@ export class OrderController {
     private readonly createOrderUseCase: CreateOrderUseCase,
     @Inject('GetOrderUseCase')
     private readonly getOrderUseCase: GetOrderUseCase,
+    @Inject('ConfirmOrderUseCase')
+    private readonly confirmOrderUseCase: ConfirmOrderUseCase,
     @Inject('CancelOrderUseCase')
     private readonly cancelOrderUseCase: CancelOrderUseCase,
-    @Inject(TEMPORAL_CLIENT)
-    private readonly temporalClient: Client,
   ) {}
 
   @Post()
@@ -41,56 +36,13 @@ export class OrderController {
   async createOrder(
     @Body() request: CreateOrderRequest,
   ): Promise<OrderResponseDto> {
-    this.logger.log(
-      `Creating order for customer ${request.customerId} with ${request.items.length} items`,
-    );
+    this.logger.log(`Creating order for customer ${request.customerId}`);
 
-    const orderResponse = await this.createOrderUseCase.execute({
+    return this.createOrderUseCase.execute({
       customerId: request.customerId,
       items: request.items,
       shippingAddress: request.shippingAddress,
     });
-
-    // Start the Temporal order processing workflow
-    try {
-      await this.temporalClient.workflow.start(orderProcessingWorkflow, {
-        workflowId: `order-processing-${orderResponse.id}`,
-        taskQueue: 'order-processing',
-        args: [
-          {
-            orderId: orderResponse.id,
-            customerId: request.customerId,
-            items: request.items.map((item) => ({
-              sku: item.productId,
-              quantity: item.quantity,
-            })),
-            paymentDetails: {
-              amount: orderResponse.totalAmount,
-              currency: orderResponse.currency,
-              method: {
-                type: 'CREDIT_CARD',
-                last4Digits: '0000',
-                expiryMonth: 12,
-                expiryYear: 2027,
-              },
-            },
-            shippingAddress: request.shippingAddress,
-          },
-        ],
-      });
-
-      this.logger.log(
-        `Temporal workflow started for order ${orderResponse.id}`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to start Temporal workflow for order ${orderResponse.id}: ${error}`,
-      );
-      // Order was already created in DB — workflow start failure is non-fatal
-      // A recovery mechanism can re-trigger the workflow later
-    }
-
-    return orderResponse;
   }
 
   @Get(':id')
@@ -104,20 +56,13 @@ export class OrderController {
   @HttpCode(HttpStatus.OK)
   async confirmOrder(@Param('id') id: string): Promise<{ message: string }> {
     this.logger.log(`Confirming order ${id}`);
-
-    const handle = this.temporalClient.workflow.getHandle(
-      `order-processing-${id}`,
-    );
-    await handle.signal(confirmOrderSignal);
-
-    return { message: `Order ${id} confirmation signal sent` };
+    return this.confirmOrderUseCase.execute({ orderId: id });
   }
 
   @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
   async cancelOrder(@Param('id') id: string): Promise<{ message: string }> {
     this.logger.log(`Cancelling order ${id}`);
-    await this.cancelOrderUseCase.execute({ orderId: id });
-    return { message: `Order ${id} has been cancelled` };
+    return this.cancelOrderUseCase.execute({ orderId: id });
   }
 }

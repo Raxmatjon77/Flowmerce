@@ -20,10 +20,15 @@ import {
 import {
   NOTIFICATION_SERVICE_PORT,
 } from './application/ports/notification-service.port';
+import {
+  ORDER_WORKFLOW_ORCHESTRATOR,
+  IOrderWorkflowOrchestrator,
+} from './application/ports/workflow-orchestrator.port';
 import { InventoryServiceAdapter } from './infrastructure/adapters/inventory-service.adapter';
 import { PaymentServiceAdapter } from './infrastructure/adapters/payment-service.adapter';
 import { ShippingServiceAdapter } from './infrastructure/adapters/shipping-service.adapter';
 import { NotificationServiceAdapter } from './infrastructure/adapters/notification-service.adapter';
+import { OrderWorkflowOrchestrator } from './infrastructure/temporal/order-workflow-orchestrator';
 import { OrderActivitiesImpl } from './infrastructure/temporal/activities/order.activities';
 import { CreateOrderUseCase } from './application/use-cases/create-order/create-order.use-case';
 import { GetOrderUseCase } from './application/use-cases/get-order/get-order.use-case';
@@ -45,7 +50,6 @@ import { NotificationModule } from '@notification/notification.module';
       database: process.env.ORDER_DB_NAME || 'order_db',
       token: KYSELY_ORDER_DB,
     }),
-    // Import other service modules — adapters depend on their exported use cases
     PaymentModule,
     InventoryModule,
     ShippingModule,
@@ -59,20 +63,24 @@ import { NotificationModule } from '@notification/notification.module';
     // Event publisher binding
     { provide: EVENT_PUBLISHER, useClass: OrderEventPublisher },
 
+    // Workflow orchestrator binding
+    { provide: ORDER_WORKFLOW_ORCHESTRATOR, useClass: OrderWorkflowOrchestrator },
+
     // Port adapters
     { provide: INVENTORY_SERVICE_PORT, useClass: InventoryServiceAdapter },
     { provide: PAYMENT_SERVICE_PORT, useClass: PaymentServiceAdapter },
     { provide: SHIPPING_SERVICE_PORT, useClass: ShippingServiceAdapter },
     { provide: NOTIFICATION_SERVICE_PORT, useClass: NotificationServiceAdapter },
 
-    // Use cases (factory providers — use cases have no @Injectable decorator)
+    // Use cases
     {
       provide: 'CreateOrderUseCase',
       useFactory: (
         orderRepository: IOrderRepository,
         eventPublisher: IEventPublisher,
-      ) => new CreateOrderUseCase(orderRepository, eventPublisher),
-      inject: [ORDER_REPOSITORY, EVENT_PUBLISHER],
+        workflowOrchestrator: IOrderWorkflowOrchestrator,
+      ) => new CreateOrderUseCase(orderRepository, eventPublisher, workflowOrchestrator),
+      inject: [ORDER_REPOSITORY, EVENT_PUBLISHER, ORDER_WORKFLOW_ORCHESTRATOR],
     },
     {
       provide: 'GetOrderUseCase',
@@ -85,16 +93,18 @@ import { NotificationModule } from '@notification/notification.module';
       useFactory: (
         orderRepository: IOrderRepository,
         eventPublisher: IEventPublisher,
-      ) => new ConfirmOrderUseCase(orderRepository, eventPublisher),
-      inject: [ORDER_REPOSITORY, EVENT_PUBLISHER],
+        workflowOrchestrator: IOrderWorkflowOrchestrator,
+      ) => new ConfirmOrderUseCase(orderRepository, eventPublisher, workflowOrchestrator),
+      inject: [ORDER_REPOSITORY, EVENT_PUBLISHER, ORDER_WORKFLOW_ORCHESTRATOR],
     },
     {
       provide: 'CancelOrderUseCase',
       useFactory: (
         orderRepository: IOrderRepository,
         eventPublisher: IEventPublisher,
-      ) => new CancelOrderUseCase(orderRepository, eventPublisher),
-      inject: [ORDER_REPOSITORY, EVENT_PUBLISHER],
+        workflowOrchestrator: IOrderWorkflowOrchestrator,
+      ) => new CancelOrderUseCase(orderRepository, eventPublisher, workflowOrchestrator),
+      inject: [ORDER_REPOSITORY, EVENT_PUBLISHER, ORDER_WORKFLOW_ORCHESTRATOR],
     },
 
     // Temporal activities
@@ -102,6 +112,7 @@ import { NotificationModule } from '@notification/notification.module';
   ],
   exports: [
     ORDER_REPOSITORY,
+    ORDER_WORKFLOW_ORCHESTRATOR,
     'CreateOrderUseCase',
     'GetOrderUseCase',
     'ConfirmOrderUseCase',

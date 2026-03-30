@@ -1,31 +1,44 @@
 import { IUseCase } from '@shared/application';
 import { IEventPublisher } from '@shared/application';
 import { IOrderRepository, OrderNotFoundError } from '@order/domain';
+import { IOrderWorkflowOrchestrator } from '../../ports/workflow-orchestrator.port';
 
 export interface CancelOrderInput {
   orderId: string;
 }
 
+export interface CancelOrderOutput {
+  message: string;
+}
+
 export class CancelOrderUseCase
-  implements IUseCase<CancelOrderInput, void>
+  implements IUseCase<CancelOrderInput, CancelOrderOutput>
 {
   constructor(
     private readonly orderRepository: IOrderRepository,
     private readonly eventPublisher: IEventPublisher,
+    private readonly workflowOrchestrator: IOrderWorkflowOrchestrator,
   ) {}
 
-  async execute(input: CancelOrderInput): Promise<void> {
+  async execute(input: CancelOrderInput): Promise<CancelOrderOutput> {
     const order = await this.orderRepository.findById(input.orderId);
 
     if (!order) {
       throw new OrderNotFoundError(input.orderId);
     }
 
+    // Cancel the workflow first (if running)
+    await this.workflowOrchestrator.cancelOrderWorkflow(input.orderId);
+
+    // Update domain state
     order.cancel();
 
     await this.orderRepository.save(order);
 
+    // Publish domain events
     const domainEvents = order.clearDomainEvents();
     await this.eventPublisher.publishAll(domainEvents);
+
+    return { message: `Order ${input.orderId} has been cancelled` };
   }
 }

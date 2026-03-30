@@ -8,6 +8,7 @@ import {
   ShippingAddress,
   IOrderRepository,
 } from '@order/domain';
+import { IOrderWorkflowOrchestrator } from '../../ports/workflow-orchestrator.port';
 import { CreateOrderDto } from '../../dtos/create-order.dto';
 import { OrderResponseDto } from '../../dtos/order-response.dto';
 import { toOrderResponseDto } from '../order-response.mapper';
@@ -18,20 +19,21 @@ export class CreateOrderUseCase
   constructor(
     private readonly orderRepository: IOrderRepository,
     private readonly eventPublisher: IEventPublisher,
+    private readonly workflowOrchestrator: IOrderWorkflowOrchestrator,
   ) {}
 
   async execute(input: CreateOrderDto): Promise<OrderResponseDto> {
     const orderId = uuidv4();
+    const currency = input.items[0]?.currency || 'USD';
 
-    const currency = input.items[0].currency;
-
+    // Create domain entities
     const orderItems = input.items.map((item) =>
       OrderItem.create(uuidv4(), {
         orderId,
         productId: item.productId,
         productName: item.productName,
         quantity: item.quantity,
-        unitPrice: Money.create(item.unitPrice, item.currency),
+        unitPrice: Money.create(item.unitPrice, item.currency || currency),
       }),
     );
 
@@ -51,10 +53,33 @@ export class CreateOrderUseCase
       currency,
     );
 
+    // Persist order
     await this.orderRepository.save(order);
 
+    // Publish domain events
     const domainEvents = order.clearDomainEvents();
     await this.eventPublisher.publishAll(domainEvents);
+
+    // Start workflow orchestration
+    await this.workflowOrchestrator.startOrderProcessing({
+      orderId,
+      customerId: input.customerId,
+      items: input.items.map((item) => ({
+        sku: item.productId,
+        quantity: item.quantity,
+      })),
+      paymentDetails: {
+        amount: order.totalAmount.amount,
+        currency,
+        method: {
+          type: 'CREDIT_CARD',
+          last4Digits: '0000',
+          expiryMonth: 12,
+          expiryYear: 2027,
+        },
+      },
+      shippingAddress: input.shippingAddress,
+    });
 
     return toOrderResponseDto(order);
   }

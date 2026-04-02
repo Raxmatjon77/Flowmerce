@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { v4 as uuidv4 } from 'uuid';
 import { Payment, IPaymentRepository } from '@payment/domain';
+import { KAFKA_TOPICS } from '@shared/infrastructure/kafka';
 import { PaymentDatabase } from '../tables/payment.table';
 import { PaymentMapper, PaymentRow } from '../mappers/payment.mapper';
 
@@ -77,14 +78,7 @@ export class KyselyPaymentRepository implements IPaymentRepository {
     return PaymentMapper.toDomain(row as PaymentRow);
   }
 
-  private resolveTopicForEvent(eventType: string): string {
-    const topicMap: Record<string, string> = {
-      PaymentCreated: 'payment.events',
-      PaymentProcessed: 'payment.events',
-      PaymentFailed: 'payment.events',
-      PaymentRefunded: 'payment.events',
-    };
-
-    return topicMap[eventType] ?? 'payment.events';
+  private resolveTopicForEvent(_eventType: string): string {
+    return KAFKA_TOPICS.PAYMENT_EVENTS;
   }
 }

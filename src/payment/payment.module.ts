@@ -16,6 +16,9 @@ import { MockPaymentGateway } from './infrastructure/adapters/mock-payment-gatew
 import { ProcessPaymentUseCase } from './application/use-cases/process-payment/process-payment.use-case';
 import { RefundPaymentUseCase } from './application/use-cases/refund-payment/refund-payment.use-case';
 import { GetPaymentUseCase } from './application/use-cases/get-payment/get-payment.use-case';
+import { PAYMENT_USE_CASE_TOKENS } from './application/injection-tokens';
+import { PaymentEventConsumer } from './infrastructure/kafka/payment-event-consumer';
+import { PaymentController } from './presentation/controllers/payment.controller';
 
 @Module({
   imports: [
@@ -28,6 +31,7 @@ import { GetPaymentUseCase } from './application/use-cases/get-payment/get-payme
       token: KYSELY_PAYMENT_DB,
     }),
   ],
+  controllers: [PaymentController],
   providers: [
     // Repository binding
     { provide: PAYMENT_REPOSITORY, useClass: KyselyPaymentRepository },
@@ -40,7 +44,7 @@ import { GetPaymentUseCase } from './application/use-cases/get-payment/get-payme
 
     // Use cases (factory providers)
     {
-      provide: 'ProcessPaymentUseCase',
+      provide: PAYMENT_USE_CASE_TOKENS.PROCESS,
       useFactory: (
         paymentRepository: IPaymentRepository,
         paymentGateway: IPaymentGateway,
@@ -54,7 +58,7 @@ import { GetPaymentUseCase } from './application/use-cases/get-payment/get-payme
       inject: [PAYMENT_REPOSITORY, PAYMENT_GATEWAY, EVENT_PUBLISHER],
     },
     {
-      provide: 'RefundPaymentUseCase',
+      provide: PAYMENT_USE_CASE_TOKENS.REFUND,
       useFactory: (
         paymentRepository: IPaymentRepository,
         eventPublisher: IEventPublisher,
@@ -62,7 +66,7 @@ import { GetPaymentUseCase } from './application/use-cases/get-payment/get-payme
       inject: [PAYMENT_REPOSITORY, EVENT_PUBLISHER],
     },
     {
-      provide: 'GetPaymentUseCase',
+      provide: PAYMENT_USE_CASE_TOKENS.GET,
       useFactory: (paymentRepository: IPaymentRepository) =>
         new GetPaymentUseCase(paymentRepository),
       inject: [PAYMENT_REPOSITORY],
@@ -71,18 +75,21 @@ import { GetPaymentUseCase } from './application/use-cases/get-payment/get-payme
     // Re-export use case classes for adapter injection (used by order service adapters)
     {
       provide: ProcessPaymentUseCase,
-      useExisting: 'ProcessPaymentUseCase',
+      useExisting: PAYMENT_USE_CASE_TOKENS.PROCESS,
     },
     {
       provide: RefundPaymentUseCase,
-      useExisting: 'RefundPaymentUseCase',
+      useExisting: PAYMENT_USE_CASE_TOKENS.REFUND,
     },
+
+    // Kafka event consumer
+    PaymentEventConsumer,
   ],
   exports: [
     PAYMENT_REPOSITORY,
-    'ProcessPaymentUseCase',
-    'RefundPaymentUseCase',
-    'GetPaymentUseCase',
+    PAYMENT_USE_CASE_TOKENS.PROCESS,
+    PAYMENT_USE_CASE_TOKENS.REFUND,
+    PAYMENT_USE_CASE_TOKENS.GET,
     ProcessPaymentUseCase,
     RefundPaymentUseCase,
   ],

@@ -1,0 +1,15 @@
+export const TEMPORAL_TASK_QUEUES = {
+  ORDER_PROCESSING: 'order-processing',
+} as const;
+
+export const TEMPORAL_WORKFLOW_ID_PREFIX = {
+  ORDER: 'order-processing-',
+} as const;
+
+export const TEMPORAL_DEFAULTS = {
+  ACTIVITY_START_TO_CLOSE_TIMEOUT: '30s',
+  ACTIVITY_MAX_ATTEMPTS: 3,
+  ACTIVITY_INITIAL_INTERVAL: '1s',
+  ACTIVITY_BACKOFF_COEFFICIENT: 2,
+  CONFIRMATION_WAIT_TIMEOUT: '24h',
+} as const;

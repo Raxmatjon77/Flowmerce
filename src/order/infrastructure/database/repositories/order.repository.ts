@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { v4 as uuidv4 } from 'uuid';
 import { Order, IOrderRepository, OrderStatus } from '@order/domain';
+import { KAFKA_TOPICS } from '@shared/infrastructure/kafka';
 import { OrderDatabase } from '../tables/order.table';
 import { OrderMapper, OrderRow, OrderItemRow } from '../mappers/order.mapper';
 
@@ -123,16 +124,7 @@ export class KyselyOrderRepository implements IOrderRepository {
       .execute();
   }
 
-  private resolveTopicForEvent(eventType: string): string {
-    const topicMap: Record<string, string> = {
-      OrderCreated: 'order.events',
-      OrderInventoryReserved: 'order.events',
-      OrderPaymentProcessed: 'order.events',
-      OrderConfirmed: 'order.events',
-      OrderCancelled: 'order.events',
-      OrderShipped: 'order.events',
-    };
-
-    return topicMap[eventType] ?? 'order.events';
+  private resolveTopicForEvent(_eventType: string): string {
+    return KAFKA_TOPICS.ORDER_EVENTS;
   }
 }

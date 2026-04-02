@@ -18,6 +18,9 @@ import {
 import { MockNotificationSender } from './infrastructure/adapters/mock-notification-sender';
 import { SendNotificationUseCase } from './application/use-cases/send-notification/send-notification.use-case';
 import { GetNotificationsUseCase } from './application/use-cases/get-notifications/get-notifications.use-case';
+import { NOTIFICATION_USE_CASE_TOKENS } from './application/injection-tokens';
+import { NotificationEventConsumer } from './infrastructure/kafka/notification-event-consumer';
+import { NotificationController } from './presentation/controllers/notification.controller';
 
 @Module({
   imports: [
@@ -30,6 +33,7 @@ import { GetNotificationsUseCase } from './application/use-cases/get-notificatio
       token: KYSELY_NOTIFICATION_DB,
     }),
   ],
+  controllers: [NotificationController],
   providers: [
     // Repository binding
     {
@@ -45,7 +49,7 @@ import { GetNotificationsUseCase } from './application/use-cases/get-notificatio
 
     // Use cases (factory providers)
     {
-      provide: 'SendNotificationUseCase',
+      provide: NOTIFICATION_USE_CASE_TOKENS.SEND,
       useFactory: (
         notificationRepository: INotificationRepository,
         notificationSender: INotificationSender,
@@ -59,7 +63,7 @@ import { GetNotificationsUseCase } from './application/use-cases/get-notificatio
       inject: [NOTIFICATION_REPOSITORY, NOTIFICATION_SENDER, EVENT_PUBLISHER],
     },
     {
-      provide: 'GetNotificationsUseCase',
+      provide: NOTIFICATION_USE_CASE_TOKENS.GET,
       useFactory: (notificationRepository: INotificationRepository) =>
         new GetNotificationsUseCase(notificationRepository),
       inject: [NOTIFICATION_REPOSITORY],
@@ -68,13 +72,16 @@ import { GetNotificationsUseCase } from './application/use-cases/get-notificatio
     // Re-export use case classes for adapter injection
     {
       provide: SendNotificationUseCase,
-      useExisting: 'SendNotificationUseCase',
+      useExisting: NOTIFICATION_USE_CASE_TOKENS.SEND,
     },
+
+    // Kafka event consumer
+    NotificationEventConsumer,
   ],
   exports: [
     NOTIFICATION_REPOSITORY,
-    'SendNotificationUseCase',
-    'GetNotificationsUseCase',
+    NOTIFICATION_USE_CASE_TOKENS.SEND,
+    NOTIFICATION_USE_CASE_TOKENS.GET,
     SendNotificationUseCase,
   ],
 })

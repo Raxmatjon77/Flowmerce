@@ -16,6 +16,7 @@ import { CreateOrderUseCase } from '@order/application/use-cases/create-order/cr
 import { GetOrderUseCase } from '@order/application/use-cases/get-order/get-order.use-case';
 import { ConfirmOrderUseCase } from '@order/application/use-cases/confirm-order/confirm-order.use-case';
 import { CancelOrderUseCase } from '@order/application/use-cases/cancel-order/cancel-order.use-case';
+import { ORDER_USE_CASE_TOKENS } from '@order/application/injection-tokens';
 import { OrderResponseDto } from '@order/application/dtos/order-response.dto';
 import { CreateOrderRequest } from '../dto/create-order.request';
 
@@ -24,13 +25,13 @@ export class OrderController {
   private readonly logger = new Logger(OrderController.name);
 
   constructor(
-    @Inject('CreateOrderUseCase')
+    @Inject(ORDER_USE_CASE_TOKENS.CREATE)
     private readonly createOrderUseCase: CreateOrderUseCase,
-    @Inject('GetOrderUseCase')
+    @Inject(ORDER_USE_CASE_TOKENS.GET)
     private readonly getOrderUseCase: GetOrderUseCase,
-    @Inject('ConfirmOrderUseCase')
+    @Inject(ORDER_USE_CASE_TOKENS.CONFIRM)
     private readonly confirmOrderUseCase: ConfirmOrderUseCase,
-    @Inject('CancelOrderUseCase')
+    @Inject(ORDER_USE_CASE_TOKENS.CANCEL)
     private readonly cancelOrderUseCase: CancelOrderUseCase,
   ) {}
 

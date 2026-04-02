@@ -1,6 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Client, WorkflowNotFoundError } from '@temporalio/client';
 import { TEMPORAL_CLIENT } from '@shared/infrastructure/temporal/temporal.module';
+import { TEMPORAL_TASK_QUEUES, TEMPORAL_WORKFLOW_ID_PREFIX } from '@shared/infrastructure/temporal';
 import {
   IOrderWorkflowOrchestrator,
   StartOrderWorkflowInput,
@@ -13,7 +14,7 @@ import {
 @Injectable()
 export class OrderWorkflowOrchestrator implements IOrderWorkflowOrchestrator {
   private readonly logger = new Logger(OrderWorkflowOrchestrator.name);
-  private readonly taskQueue = process.env.TEMPORAL_TASK_QUEUE || 'order-processing';
+  private readonly taskQueue = process.env.TEMPORAL_TASK_QUEUE || TEMPORAL_TASK_QUEUES.ORDER_PROCESSING;
 
   constructor(
     @Inject(TEMPORAL_CLIENT)
@@ -94,6 +95,6 @@ export class OrderWorkflowOrchestrator implements IOrderWorkflowOrchestrator {
   }
 
   private getWorkflowId(orderId: string): string {
-    return `order-processing-${orderId}`;
+    return `${TEMPORAL_WORKFLOW_ID_PREFIX.ORDER}${orderId}`;
   }
 }

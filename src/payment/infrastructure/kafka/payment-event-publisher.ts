@@ -3,6 +3,7 @@ import { Kysely } from 'kysely';
 import { v4 as uuidv4 } from 'uuid';
 import { DomainEvent } from '@shared/domain';
 import { IEventPublisher } from '@shared/application';
+import { KAFKA_TOPICS } from '@shared/infrastructure/kafka';
 import { PaymentDatabase } from '../database/tables/payment.table';
 import { KYSELY_PAYMENT_DB } from '../database/repositories/payment.repository';
 
@@ -44,14 +45,7 @@ export class PaymentEventPublisher implements IEventPublisher {
     await this.db.insertInto('outbox_events').values(outboxRows).execute();
   }
 
-  private resolveTopicForEvent(eventType: string): string {
-    const topicMap: Record<string, string> = {
-      PaymentCreated: 'payment.events',
-      PaymentProcessed: 'payment.events',
-      PaymentFailed: 'payment.events',
-      PaymentRefunded: 'payment.events',
-    };
-
-    return topicMap[eventType] ?? 'payment.events';
+  private resolveTopicForEvent(_eventType: string): string {
+    return KAFKA_TOPICS.PAYMENT_EVENTS;
   }
 }

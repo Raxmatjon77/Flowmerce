@@ -8,8 +8,23 @@ import {
 
 import type { OrderActivities } from '../activities/order.activities';
 
-// Define the confirmation signal
-export const confirmOrderSignal = defineSignal('confirmOrder');
+// Signal name constant
+export const CONFIRM_ORDER_SIGNAL = 'confirmOrder';
+export const confirmOrderSignal = defineSignal(CONFIRM_ORDER_SIGNAL);
+
+// Status constants used in workflow (cannot import from outside workflow sandbox)
+const STATUS = {
+  INVENTORY_RESERVED: 'INVENTORY_RESERVED',
+  PAYMENT_PROCESSED: 'PAYMENT_PROCESSED',
+  SHIPPED: 'SHIPPED',
+} as const;
+
+const NOTIFICATION_TYPE = {
+  ORDER_CONFIRMED: 'ORDER_CONFIRMED',
+  ORDER_CANCELLED: 'ORDER_CANCELLED',
+} as const;
+
+const CONFIRMATION_TIMEOUT = '24h';
 
 export interface OrderProcessingInput {
   orderId: string;
@@ -46,7 +61,6 @@ const activities = proxyActivities<OrderActivities>({
 export async function orderProcessingWorkflow(
   input: OrderProcessingInput,
 ): Promise<void> {
-  // Compensation stack (LIFO)
   const compensations: Array<() => Promise<void>> = [];
 
   let confirmed = false;
@@ -60,7 +74,7 @@ export async function orderProcessingWorkflow(
     compensations.push(() =>
       activities.releaseInventory(input.orderId, input.items),
     );
-    await activities.updateOrderStatus(input.orderId, 'INVENTORY_RESERVED');
+    await activities.updateOrderStatus(input.orderId, STATUS.INVENTORY_RESERVED);
 
     // Step 2: Process payment
     const paymentId = await activities.processPayment(
@@ -70,10 +84,10 @@ export async function orderProcessingWorkflow(
       input.paymentDetails.method,
     );
     compensations.push(() => activities.refundPayment(paymentId));
-    await activities.updateOrderStatus(input.orderId, 'PAYMENT_PROCESSED');
+    await activities.updateOrderStatus(input.orderId, STATUS.PAYMENT_PROCESSED);
 
-    // Step 3: Wait for external confirmation signal (24h timeout)
-    const wasConfirmed = await condition(() => confirmed, '24h');
+    // Step 3: Wait for external confirmation signal
+    const wasConfirmed = await condition(() => confirmed, CONFIRMATION_TIMEOUT);
     if (!wasConfirmed) {
       throw ApplicationFailure.nonRetryable(
         'Order confirmation timed out after 24 hours',
@@ -83,10 +97,10 @@ export async function orderProcessingWorkflow(
 
     // Step 4: Create shipment
     await activities.createShipment(input.orderId, input.shippingAddress);
-    await activities.updateOrderStatus(input.orderId, 'SHIPPED');
+    await activities.updateOrderStatus(input.orderId, STATUS.SHIPPED);
 
     // Step 5: Notify user
-    await activities.notifyUser(input.customerId, 'ORDER_CONFIRMED', {
+    await activities.notifyUser(input.customerId, NOTIFICATION_TYPE.ORDER_CONFIRMED, {
       orderId: input.orderId,
     });
   } catch (error) {
@@ -102,7 +116,7 @@ export async function orderProcessingWorkflow(
     // Cancel the order
     try {
       await activities.cancelOrder(input.orderId);
-      await activities.notifyUser(input.customerId, 'ORDER_CANCELLED', {
+      await activities.notifyUser(input.customerId, NOTIFICATION_TYPE.ORDER_CANCELLED, {
         orderId: input.orderId,
         reason: error instanceof Error ? error.message : 'Unknown error',
       });

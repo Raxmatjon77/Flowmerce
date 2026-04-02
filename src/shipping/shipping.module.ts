@@ -16,6 +16,9 @@ import { MockCarrierService } from './infrastructure/adapters/mock-carrier.servi
 import { CreateShipmentUseCase } from './application/use-cases/create-shipment/create-shipment.use-case';
 import { UpdateShipmentStatusUseCase } from './application/use-cases/update-shipment-status/update-shipment-status.use-case';
 import { GetShipmentUseCase } from './application/use-cases/get-shipment/get-shipment.use-case';
+import { SHIPPING_USE_CASE_TOKENS } from './application/injection-tokens';
+import { ShippingEventConsumer } from './infrastructure/kafka/shipping-event-consumer';
+import { ShippingController } from './presentation/controllers/shipping.controller';
 
 @Module({
   imports: [
@@ -28,6 +31,7 @@ import { GetShipmentUseCase } from './application/use-cases/get-shipment/get-shi
       token: KYSELY_SHIPPING_DB,
     }),
   ],
+  controllers: [ShippingController],
   providers: [
     // Repository binding
     { provide: SHIPMENT_REPOSITORY, useClass: KyselyShipmentRepository },
@@ -40,7 +44,7 @@ import { GetShipmentUseCase } from './application/use-cases/get-shipment/get-shi
 
     // Use cases (factory providers)
     {
-      provide: 'CreateShipmentUseCase',
+      provide: SHIPPING_USE_CASE_TOKENS.CREATE,
       useFactory: (
         shipmentRepository: IShipmentRepository,
         carrierService: ICarrierService,
@@ -54,7 +58,7 @@ import { GetShipmentUseCase } from './application/use-cases/get-shipment/get-shi
       inject: [SHIPMENT_REPOSITORY, CARRIER_SERVICE, EVENT_PUBLISHER],
     },
     {
-      provide: 'UpdateShipmentStatusUseCase',
+      provide: SHIPPING_USE_CASE_TOKENS.UPDATE_STATUS,
       useFactory: (
         shipmentRepository: IShipmentRepository,
         eventPublisher: IEventPublisher,
@@ -62,7 +66,7 @@ import { GetShipmentUseCase } from './application/use-cases/get-shipment/get-shi
       inject: [SHIPMENT_REPOSITORY, EVENT_PUBLISHER],
     },
     {
-      provide: 'GetShipmentUseCase',
+      provide: SHIPPING_USE_CASE_TOKENS.GET,
       useFactory: (shipmentRepository: IShipmentRepository) =>
         new GetShipmentUseCase(shipmentRepository),
       inject: [SHIPMENT_REPOSITORY],
@@ -71,14 +75,17 @@ import { GetShipmentUseCase } from './application/use-cases/get-shipment/get-shi
     // Re-export use case classes for adapter injection
     {
       provide: CreateShipmentUseCase,
-      useExisting: 'CreateShipmentUseCase',
+      useExisting: SHIPPING_USE_CASE_TOKENS.CREATE,
     },
+
+    // Kafka event consumer
+    ShippingEventConsumer,
   ],
   exports: [
     SHIPMENT_REPOSITORY,
-    'CreateShipmentUseCase',
-    'UpdateShipmentStatusUseCase',
-    'GetShipmentUseCase',
+    SHIPPING_USE_CASE_TOKENS.CREATE,
+    SHIPPING_USE_CASE_TOKENS.UPDATE_STATUS,
+    SHIPPING_USE_CASE_TOKENS.GET,
     CreateShipmentUseCase,
   ],
 })

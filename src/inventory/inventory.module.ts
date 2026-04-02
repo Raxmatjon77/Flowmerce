@@ -12,6 +12,9 @@ import { ReserveInventoryUseCase } from './application/use-cases/reserve-invento
 import { ReleaseInventoryUseCase } from './application/use-cases/release-inventory/release-inventory.use-case';
 import { DeductInventoryUseCase } from './application/use-cases/deduct-inventory/deduct-inventory.use-case';
 import { GetInventoryUseCase } from './application/use-cases/get-inventory/get-inventory.use-case';
+import { INVENTORY_USE_CASE_TOKENS } from './application/injection-tokens';
+import { InventoryEventConsumer } from './infrastructure/kafka/inventory-event-consumer';
+import { InventoryController } from './presentation/controllers/inventory.controller';
 
 @Module({
   imports: [
@@ -24,6 +27,7 @@ import { GetInventoryUseCase } from './application/use-cases/get-inventory/get-i
       token: KYSELY_INVENTORY_DB,
     }),
   ],
+  controllers: [InventoryController],
   providers: [
     // Repository binding
     { provide: INVENTORY_REPOSITORY, useClass: KyselyInventoryRepository },
@@ -33,7 +37,7 @@ import { GetInventoryUseCase } from './application/use-cases/get-inventory/get-i
 
     // Use cases (factory providers)
     {
-      provide: 'ReserveInventoryUseCase',
+      provide: INVENTORY_USE_CASE_TOKENS.RESERVE,
       useFactory: (
         inventoryRepository: IInventoryRepository,
         eventPublisher: IEventPublisher,
@@ -41,7 +45,7 @@ import { GetInventoryUseCase } from './application/use-cases/get-inventory/get-i
       inject: [INVENTORY_REPOSITORY, EVENT_PUBLISHER],
     },
     {
-      provide: 'ReleaseInventoryUseCase',
+      provide: INVENTORY_USE_CASE_TOKENS.RELEASE,
       useFactory: (
         inventoryRepository: IInventoryRepository,
         eventPublisher: IEventPublisher,
@@ -49,7 +53,7 @@ import { GetInventoryUseCase } from './application/use-cases/get-inventory/get-i
       inject: [INVENTORY_REPOSITORY, EVENT_PUBLISHER],
     },
     {
-      provide: 'DeductInventoryUseCase',
+      provide: INVENTORY_USE_CASE_TOKENS.DEDUCT,
       useFactory: (
         inventoryRepository: IInventoryRepository,
         eventPublisher: IEventPublisher,
@@ -57,7 +61,7 @@ import { GetInventoryUseCase } from './application/use-cases/get-inventory/get-i
       inject: [INVENTORY_REPOSITORY, EVENT_PUBLISHER],
     },
     {
-      provide: 'GetInventoryUseCase',
+      provide: INVENTORY_USE_CASE_TOKENS.GET,
       useFactory: (inventoryRepository: IInventoryRepository) =>
         new GetInventoryUseCase(inventoryRepository),
       inject: [INVENTORY_REPOSITORY],
@@ -66,19 +70,22 @@ import { GetInventoryUseCase } from './application/use-cases/get-inventory/get-i
     // Re-export use case classes for adapter injection
     {
       provide: ReserveInventoryUseCase,
-      useExisting: 'ReserveInventoryUseCase',
+      useExisting: INVENTORY_USE_CASE_TOKENS.RESERVE,
     },
     {
       provide: ReleaseInventoryUseCase,
-      useExisting: 'ReleaseInventoryUseCase',
+      useExisting: INVENTORY_USE_CASE_TOKENS.RELEASE,
     },
+
+    // Kafka event consumer
+    InventoryEventConsumer,
   ],
   exports: [
     INVENTORY_REPOSITORY,
-    'ReserveInventoryUseCase',
-    'ReleaseInventoryUseCase',
-    'DeductInventoryUseCase',
-    'GetInventoryUseCase',
+    INVENTORY_USE_CASE_TOKENS.RESERVE,
+    INVENTORY_USE_CASE_TOKENS.RELEASE,
+    INVENTORY_USE_CASE_TOKENS.DEDUCT,
+    INVENTORY_USE_CASE_TOKENS.GET,
     ReserveInventoryUseCase,
     ReleaseInventoryUseCase,
   ],

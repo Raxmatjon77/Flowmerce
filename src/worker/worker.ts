@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { NativeConnection, Worker, Runtime } from '@temporalio/worker';
 import { WorkerModule } from './worker.module';
 import { OrderActivitiesImpl } from '@order/infrastructure/temporal/activities/order.activities';
+import { TEMPORAL_TASK_QUEUES } from '@shared/infrastructure/temporal';
 
 /**
  * Temporal Worker Configuration
@@ -22,7 +23,7 @@ function getConfig(): WorkerConfig {
   return {
     temporalAddress: process.env.TEMPORAL_ADDRESS || 'localhost:7233',
     namespace: process.env.TEMPORAL_NAMESPACE || 'default',
-    taskQueue: process.env.TEMPORAL_TASK_QUEUE || 'order-processing',
+    taskQueue: process.env.TEMPORAL_TASK_QUEUE || TEMPORAL_TASK_QUEUES.ORDER_PROCESSING,
     maxConcurrentActivityTaskExecutions: parseInt(
       process.env.WORKER_MAX_CONCURRENT_ACTIVITIES || '100',
       10,

@@ -18,7 +18,7 @@ import {
   INotificationServicePort,
   NotificationType,
 } from '@order/application/ports/notification-service.port';
-import { IOrderRepository, ORDER_REPOSITORY } from '@order/domain';
+import { IOrderRepository, ORDER_REPOSITORY, Order, OrderStatusEnum } from '@order/domain';
 
 export interface OrderActivities {
   reserveInventory(
@@ -138,50 +138,28 @@ export class OrderActivitiesImpl implements OrderActivities {
   }
 
   async confirmOrder(orderId: string): Promise<void> {
-    const order = await this.orderRepository.findById(orderId);
-    if (!order) {
-      throw new Error(`Order ${orderId} not found`);
-    }
-    order.confirm();
-    await this.orderRepository.save(order);
+    await this.mutateOrder(orderId, (order) => order.confirm());
   }
 
   async cancelOrder(orderId: string): Promise<void> {
-    const order = await this.orderRepository.findById(orderId);
-    if (!order) {
-      throw new Error(`Order ${orderId} not found`);
-    }
-    order.cancel();
-    await this.orderRepository.save(order);
+    await this.mutateOrder(orderId, (order) => order.cancel());
   }
 
   async updateOrderStatus(orderId: string, status: string): Promise<void> {
-    const order = await this.orderRepository.findById(orderId);
-    if (!order) {
-      throw new Error(`Order ${orderId} not found`);
+    const statusActions: Record<string, (order: Order) => void> = {
+      [OrderStatusEnum.INVENTORY_RESERVED]: (order) => order.reserveInventory(),
+      [OrderStatusEnum.PAYMENT_PROCESSED]: (order) => order.processPayment(),
+      [OrderStatusEnum.CONFIRMED]: (order) => order.confirm(),
+      [OrderStatusEnum.SHIPPED]: (order) => order.ship(),
+      [OrderStatusEnum.DELIVERED]: (order) => order.deliver(),
+    };
+
+    const action = statusActions[status];
+    if (!action) {
+      throw new Error(`Unknown status transition: ${status}`);
     }
 
-    switch (status) {
-      case 'INVENTORY_RESERVED':
-        order.reserveInventory();
-        break;
-      case 'PAYMENT_PROCESSED':
-        order.processPayment();
-        break;
-      case 'CONFIRMED':
-        order.confirm();
-        break;
-      case 'SHIPPED':
-        order.ship();
-        break;
-      case 'DELIVERED':
-        order.deliver();
-        break;
-      default:
-        throw new Error(`Unknown status transition: ${status}`);
-    }
-
-    await this.orderRepository.save(order);
+    await this.mutateOrder(orderId, action);
   }
 
   async createShipment(
@@ -201,5 +179,21 @@ export class OrderActivitiesImpl implements OrderActivities {
       type as NotificationType,
       data,
     );
+  }
+
+  /**
+   * Fetch an order, apply a mutation, and persist.
+   * Eliminates repeated fetch-check-mutate-save boilerplate.
+   */
+  private async mutateOrder(
+    orderId: string,
+    action: (order: Order) => void,
+  ): Promise<void> {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) {
+      throw new Error(`Order ${orderId} not found`);
+    }
+    action(order);
+    await this.orderRepository.save(order);
   }
 }

@@ -3,12 +3,11 @@ import { Kysely } from 'kysely';
 import { v4 as uuidv4 } from 'uuid';
 import { DomainEvent } from '@shared/domain';
 import { IEventPublisher } from '@shared/application';
+import { KAFKA_TOPICS } from '@shared/infrastructure/kafka';
 import {
   NotificationDatabase,
   KYSELY_NOTIFICATION_DB,
 } from '../database/tables/notification.table';
-
-const NOTIFICATION_TOPIC = 'notification.events';
 
 @Injectable()
 export class NotificationEventPublisher implements IEventPublisher {
@@ -24,7 +23,7 @@ export class NotificationEventPublisher implements IEventPublisher {
         id: uuidv4(),
         aggregate_id: event.aggregateId,
         event_type: event.eventType,
-        topic: NOTIFICATION_TOPIC,
+        topic: KAFKA_TOPICS.NOTIFICATION_EVENTS,
         payload: JSON.stringify(event.toPrimitives()),
         published: false,
         created_at: new Date(),
@@ -39,7 +38,7 @@ export class NotificationEventPublisher implements IEventPublisher {
       id: uuidv4(),
       aggregate_id: event.aggregateId,
       event_type: event.eventType,
-      topic: NOTIFICATION_TOPIC,
+      topic: KAFKA_TOPICS.NOTIFICATION_EVENTS,
       payload: JSON.stringify(event.toPrimitives()),
       published: false,
       created_at: new Date(),

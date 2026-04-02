@@ -1,5 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { KafkaProducerService } from './kafka-producer.service';
+import { KafkaConsumerService } from './kafka-consumer.service';
 import { Kafka } from 'kafkajs';
 import { KAFKA_CLIENT } from './kafka.constants';
 
@@ -25,8 +26,9 @@ export class KafkaModule {
           useValue: kafka,
         },
         KafkaProducerService,
+        KafkaConsumerService,
       ],
-      exports: [KAFKA_CLIENT, KafkaProducerService],
+      exports: [KAFKA_CLIENT, KafkaProducerService, KafkaConsumerService],
     };
   }
 }

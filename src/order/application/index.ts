@@ -7,6 +7,7 @@ export { CreateOrderUseCase } from './use-cases/create-order/create-order.use-ca
 export { GetOrderUseCase, GetOrderInput } from './use-cases/get-order/get-order.use-case';
 export { ConfirmOrderUseCase, ConfirmOrderInput } from './use-cases/confirm-order/confirm-order.use-case';
 export { CancelOrderUseCase, CancelOrderInput } from './use-cases/cancel-order/cancel-order.use-case';
+export { UpdateOrderStatusUseCase, UpdateOrderStatusInput, UpdateOrderStatusOutput } from './use-cases/update-order-status/update-order-status.use-case';
 
 // Mapper
 export { toOrderResponseDto } from './use-cases/order-response.mapper';

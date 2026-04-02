@@ -3,12 +3,11 @@ import { Kysely } from 'kysely';
 import { v4 as uuidv4 } from 'uuid';
 import { DomainEvent } from '@shared/domain';
 import { IEventPublisher } from '@shared/application';
+import { KAFKA_TOPICS } from '@shared/infrastructure/kafka';
 import {
   ShippingDatabase,
   KYSELY_SHIPPING_DB,
 } from '../database/tables/shipping.table';
-
-const SHIPPING_TOPIC = 'shipping.events';
 
 @Injectable()
 export class ShippingEventPublisher implements IEventPublisher {
@@ -24,7 +23,7 @@ export class ShippingEventPublisher implements IEventPublisher {
         id: uuidv4(),
         aggregate_id: event.aggregateId,
         event_type: event.eventType,
-        topic: SHIPPING_TOPIC,
+        topic: KAFKA_TOPICS.SHIPPING_EVENTS,
         payload: JSON.stringify(event.toPrimitives()),
         published: false,
         created_at: new Date(),
@@ -39,7 +38,7 @@ export class ShippingEventPublisher implements IEventPublisher {
       id: uuidv4(),
       aggregate_id: event.aggregateId,
       event_type: event.eventType,
-      topic: SHIPPING_TOPIC,
+      topic: KAFKA_TOPICS.SHIPPING_EVENTS,
       payload: JSON.stringify(event.toPrimitives()),
       published: false,
       created_at: new Date(),

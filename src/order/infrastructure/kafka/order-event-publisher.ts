@@ -3,6 +3,7 @@ import { Kysely } from 'kysely';
 import { v4 as uuidv4 } from 'uuid';
 import { DomainEvent } from '@shared/domain';
 import { IEventPublisher } from '@shared/application';
+import { KAFKA_TOPICS } from '@shared/infrastructure/kafka';
 import { OrderDatabase } from '../database/tables/order.table';
 import { KYSELY_ORDER_DB } from '../database/repositories/order.repository';
 
@@ -44,16 +45,7 @@ export class OrderEventPublisher implements IEventPublisher {
     await this.db.insertInto('outbox_events').values(outboxRows).execute();
   }
 
-  private resolveTopicForEvent(eventType: string): string {
-    const topicMap: Record<string, string> = {
-      OrderCreated: 'order.events',
-      OrderInventoryReserved: 'order.events',
-      OrderPaymentProcessed: 'order.events',
-      OrderConfirmed: 'order.events',
-      OrderCancelled: 'order.events',
-      OrderShipped: 'order.events',
-    };
-
-    return topicMap[eventType] ?? 'order.events';
+  private resolveTopicForEvent(_eventType: string): string {
+    return KAFKA_TOPICS.ORDER_EVENTS;
   }
 }

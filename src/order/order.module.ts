@@ -34,7 +34,10 @@ import { CreateOrderUseCase } from './application/use-cases/create-order/create-
 import { GetOrderUseCase } from './application/use-cases/get-order/get-order.use-case';
 import { ConfirmOrderUseCase } from './application/use-cases/confirm-order/confirm-order.use-case';
 import { CancelOrderUseCase } from './application/use-cases/cancel-order/cancel-order.use-case';
+import { UpdateOrderStatusUseCase } from './application/use-cases/update-order-status/update-order-status.use-case';
+import { ORDER_USE_CASE_TOKENS } from './application/injection-tokens';
 import { OrderController } from './presentation/controllers/order.controller';
+import { OrderEventConsumer } from './infrastructure/kafka/order-event-consumer';
 import { PaymentModule } from '@payment/payment.module';
 import { InventoryModule } from '@inventory/inventory.module';
 import { ShippingModule } from '@shipping/shipping.module';
@@ -74,7 +77,7 @@ import { NotificationModule } from '@notification/notification.module';
 
     // Use cases
     {
-      provide: 'CreateOrderUseCase',
+      provide: ORDER_USE_CASE_TOKENS.CREATE,
       useFactory: (
         orderRepository: IOrderRepository,
         eventPublisher: IEventPublisher,
@@ -83,13 +86,13 @@ import { NotificationModule } from '@notification/notification.module';
       inject: [ORDER_REPOSITORY, EVENT_PUBLISHER, ORDER_WORKFLOW_ORCHESTRATOR],
     },
     {
-      provide: 'GetOrderUseCase',
+      provide: ORDER_USE_CASE_TOKENS.GET,
       useFactory: (orderRepository: IOrderRepository) =>
         new GetOrderUseCase(orderRepository),
       inject: [ORDER_REPOSITORY],
     },
     {
-      provide: 'ConfirmOrderUseCase',
+      provide: ORDER_USE_CASE_TOKENS.CONFIRM,
       useFactory: (
         orderRepository: IOrderRepository,
         eventPublisher: IEventPublisher,
@@ -98,7 +101,7 @@ import { NotificationModule } from '@notification/notification.module';
       inject: [ORDER_REPOSITORY, EVENT_PUBLISHER, ORDER_WORKFLOW_ORCHESTRATOR],
     },
     {
-      provide: 'CancelOrderUseCase',
+      provide: ORDER_USE_CASE_TOKENS.CANCEL,
       useFactory: (
         orderRepository: IOrderRepository,
         eventPublisher: IEventPublisher,
@@ -107,16 +110,29 @@ import { NotificationModule } from '@notification/notification.module';
       inject: [ORDER_REPOSITORY, EVENT_PUBLISHER, ORDER_WORKFLOW_ORCHESTRATOR],
     },
 
+    // Update order status use case (used by event consumer)
+    {
+      provide: ORDER_USE_CASE_TOKENS.UPDATE_STATUS,
+      useFactory: (
+        orderRepository: IOrderRepository,
+        eventPublisher: IEventPublisher,
+      ) => new UpdateOrderStatusUseCase(orderRepository, eventPublisher),
+      inject: [ORDER_REPOSITORY, EVENT_PUBLISHER],
+    },
+
     // Temporal activities
     OrderActivitiesImpl,
+
+    // Kafka event consumer
+    OrderEventConsumer,
   ],
   exports: [
     ORDER_REPOSITORY,
     ORDER_WORKFLOW_ORCHESTRATOR,
-    'CreateOrderUseCase',
-    'GetOrderUseCase',
-    'ConfirmOrderUseCase',
-    'CancelOrderUseCase',
+    ORDER_USE_CASE_TOKENS.CREATE,
+    ORDER_USE_CASE_TOKENS.GET,
+    ORDER_USE_CASE_TOKENS.CONFIRM,
+    ORDER_USE_CASE_TOKENS.CANCEL,
   ],
 })
 export class OrderModule {}

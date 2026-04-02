@@ -4,6 +4,10 @@ Your task is to generate production-grade backend code and architecture followin
 
 ---
 
+> **Code Quality Rules:** All code MUST comply with [claude.code.rules.md](./claude.code.rules.md). These rules cover controller constraints, DRY enforcement, magic string elimination, and Kafka/Temporal best practices. Read and follow them before writing any code.
+
+---
+
 # 🎯 PROJECT CONTEXT
 
 We are building a Distributed Order & Fulfillment Platform.

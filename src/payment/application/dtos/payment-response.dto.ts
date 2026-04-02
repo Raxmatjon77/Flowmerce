@@ -1,4 +1,4 @@
-export interface PaymentResponseDto {
+export class PaymentResponseDto {
   id: string;
   orderId: string;
   amount: number;

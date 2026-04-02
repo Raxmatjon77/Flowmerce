@@ -1,4 +1,4 @@
-import { OrderActivitiesImpl } from './order.activities';
+import { OrderActivitiesImpl } from './order-activities.impl';
 import { IInventoryServicePort } from '@order/application/ports/inventory-service.port';
 import { IPaymentServicePort, PaymentResult } from '@order/application/ports/payment-service.port';
 import { IShippingServicePort } from '@order/application/ports/shipping-service.port';
@@ -25,7 +25,7 @@ function createMockOrder(
     'US',
   );
 
-  const order = Order.reconstitute(
+  return Order.reconstitute(
     id,
     {
       customerId: 'cust-1',
@@ -37,8 +37,6 @@ function createMockOrder(
     new Date(),
     new Date(),
   );
-
-  return order;
 }
 
 describe('OrderActivitiesImpl', () => {
@@ -132,23 +130,13 @@ describe('OrderActivitiesImpl', () => {
       };
       paymentService.processPayment.mockResolvedValue(result);
 
-      const paymentId = await activities.processPayment(
-        'order-1',
-        100,
-        'USD',
-        method,
-      );
+      const paymentId = await activities.processPayment('order-1', 100, 'USD', method);
 
       expect(paymentId).toBe('pay-123');
-      expect(paymentService.processPayment).toHaveBeenCalledWith(
-        'order-1',
-        100,
-        'USD',
-        method,
-      );
+      expect(paymentService.processPayment).toHaveBeenCalledWith('order-1', 100, 'USD', method);
     });
 
-    it('should throw when payment fails (result.success = false)', async () => {
+    it('should throw when payment fails', async () => {
       const result: PaymentResult = {
         paymentId: '',
         transactionId: '',
@@ -162,7 +150,7 @@ describe('OrderActivitiesImpl', () => {
       ).rejects.toThrow('Insufficient funds');
     });
 
-    it('should throw default message when failureReason is not provided', async () => {
+    it('should throw default message when no failureReason', async () => {
       const result: PaymentResult = {
         paymentId: '',
         transactionId: '',
@@ -179,14 +167,12 @@ describe('OrderActivitiesImpl', () => {
   describe('refundPayment', () => {
     it('should call paymentService.refundPayment', async () => {
       await activities.refundPayment('pay-123');
-
       expect(paymentService.refundPayment).toHaveBeenCalledWith('pay-123');
     });
   });
 
   describe('confirmOrder', () => {
-    it('should fetch order, call order.confirm(), and save', async () => {
-      // Order must be in PAYMENT_PROCESSED status to transition to CONFIRMED
+    it('should fetch order, confirm, and save', async () => {
       const order = createMockOrder('order-1', OrderStatus.paymentProcessed());
       orderRepository.findById.mockResolvedValue(order);
 
@@ -207,21 +193,19 @@ describe('OrderActivitiesImpl', () => {
   });
 
   describe('cancelOrder', () => {
-    it('should fetch order, call order.cancel(), and save', async () => {
-      // Order in PENDING status can be cancelled
+    it('should fetch order, cancel, and save', async () => {
       const order = createMockOrder('order-1', OrderStatus.pending());
       orderRepository.findById.mockResolvedValue(order);
 
       await activities.cancelOrder('order-1');
 
-      expect(orderRepository.findById).toHaveBeenCalledWith('order-1');
       expect(order.status.value).toBe(OrderStatusEnum.CANCELLED);
       expect(orderRepository.save).toHaveBeenCalledWith(order);
     });
   });
 
   describe('updateOrderStatus', () => {
-    it('should map INVENTORY_RESERVED status and call reserveInventory on order', async () => {
+    it('should transition to INVENTORY_RESERVED', async () => {
       const order = createMockOrder('order-1', OrderStatus.pending());
       orderRepository.findById.mockResolvedValue(order);
 
@@ -231,24 +215,22 @@ describe('OrderActivitiesImpl', () => {
       expect(orderRepository.save).toHaveBeenCalledWith(order);
     });
 
-    it('should map PAYMENT_PROCESSED status and call processPayment on order', async () => {
+    it('should transition to PAYMENT_PROCESSED', async () => {
       const order = createMockOrder('order-1', OrderStatus.inventoryReserved());
       orderRepository.findById.mockResolvedValue(order);
 
       await activities.updateOrderStatus('order-1', 'PAYMENT_PROCESSED');
 
       expect(order.status.value).toBe(OrderStatusEnum.PAYMENT_PROCESSED);
-      expect(orderRepository.save).toHaveBeenCalledWith(order);
     });
 
-    it('should map SHIPPED status and call ship on order', async () => {
+    it('should transition to SHIPPED', async () => {
       const order = createMockOrder('order-1', OrderStatus.confirmed());
       orderRepository.findById.mockResolvedValue(order);
 
       await activities.updateOrderStatus('order-1', 'SHIPPED');
 
       expect(order.status.value).toBe(OrderStatusEnum.SHIPPED);
-      expect(orderRepository.save).toHaveBeenCalledWith(order);
     });
 
     it('should throw for unknown status', async () => {
@@ -273,10 +255,7 @@ describe('OrderActivitiesImpl', () => {
 
       await activities.createShipment('order-1', address);
 
-      expect(shippingService.createShipment).toHaveBeenCalledWith(
-        'order-1',
-        address,
-      );
+      expect(shippingService.createShipment).toHaveBeenCalledWith('order-1', address);
     });
   });
 

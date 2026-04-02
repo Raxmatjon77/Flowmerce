@@ -27,7 +27,7 @@ import { InventoryServiceAdapter } from '@order/infrastructure/adapters/inventor
 import { PaymentServiceAdapter } from '@order/infrastructure/adapters/payment-service.adapter';
 import { ShippingServiceAdapter } from '@order/infrastructure/adapters/shipping-service.adapter';
 import { NotificationServiceAdapter } from '@order/infrastructure/adapters/notification-service.adapter';
-import { OrderActivitiesImpl } from '@order/infrastructure/temporal/activities/order.activities';
+import { OrderActivitiesImpl } from '@order/infrastructure/temporal/activities/order-activities.impl';
 
 // Other service modules (for adapters)
 import { PaymentModule } from '@payment/payment.module';

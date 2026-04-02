@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { NativeConnection, Worker, Runtime } from '@temporalio/worker';
 import { WorkerModule } from './worker.module';
-import { OrderActivitiesImpl } from '@order/infrastructure/temporal/activities/order.activities';
+import { OrderActivitiesImpl } from '@order/infrastructure/temporal/activities/order-activities.impl';
 import { TEMPORAL_TASK_QUEUES } from '@shared/infrastructure/temporal';
 
 /**

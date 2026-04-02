@@ -9,7 +9,7 @@ import {
 import {
   orderProcessingWorkflow,
   confirmOrderSignal,
-} from './workflows/order-processing.workflow';
+} from '../workflows/order-processing.workflow';
 
 @Injectable()
 export class OrderWorkflowOrchestrator implements IOrderWorkflowOrchestrator {
@@ -72,7 +72,6 @@ export class OrderWorkflowOrchestrator implements IOrderWorkflowOrchestrator {
     } catch (error) {
       if (error instanceof WorkflowNotFoundError) {
         this.logger.warn(`Workflow not found for cancellation: ${workflowId}`);
-        // Not throwing — order can be cancelled even if workflow doesn't exist
         return;
       }
       throw error;

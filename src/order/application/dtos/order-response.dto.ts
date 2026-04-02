@@ -1,4 +1,4 @@
-export interface OrderItemResponseDto {
+export class OrderItemResponseDto {
   id: string;
   productId: string;
   productName: string;
@@ -8,7 +8,7 @@ export interface OrderItemResponseDto {
   currency: string;
 }
 
-export interface OrderShippingAddressDto {
+export class OrderShippingAddressDto {
   street: string;
   city: string;
   state: string;
@@ -16,7 +16,7 @@ export interface OrderShippingAddressDto {
   country: string;
 }
 
-export interface OrderResponseDto {
+export class OrderResponseDto {
   id: string;
   customerId: string;
   status: string;

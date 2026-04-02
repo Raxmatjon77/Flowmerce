@@ -1,4 +1,4 @@
-export interface InventoryResponseDto {
+export class InventoryResponseDto {
   id: string;
   sku: string;
   productName: string;

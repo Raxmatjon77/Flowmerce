@@ -11,7 +11,6 @@ import {
 import {
   SHIPPING_SERVICE_PORT,
   IShippingServicePort,
-  ShippingAddress,
 } from '@order/application/ports/shipping-service.port';
 import {
   NOTIFICATION_SERVICE_PORT,
@@ -19,55 +18,7 @@ import {
   NotificationType,
 } from '@order/application/ports/notification-service.port';
 import { IOrderRepository, ORDER_REPOSITORY, Order, OrderStatusEnum } from '@order/domain';
-
-export interface OrderActivities {
-  reserveInventory(
-    orderId: string,
-    items: Array<{ sku: string; quantity: number }>,
-  ): Promise<void>;
-
-  releaseInventory(
-    orderId: string,
-    items: Array<{ sku: string; quantity: number }>,
-  ): Promise<void>;
-
-  processPayment(
-    orderId: string,
-    amount: number,
-    currency: string,
-    method: {
-      type: string;
-      last4Digits: string;
-      expiryMonth: number;
-      expiryYear: number;
-    },
-  ): Promise<string>;
-
-  refundPayment(paymentId: string): Promise<void>;
-
-  confirmOrder(orderId: string): Promise<void>;
-
-  cancelOrder(orderId: string): Promise<void>;
-
-  updateOrderStatus(orderId: string, status: string): Promise<void>;
-
-  createShipment(
-    orderId: string,
-    address: {
-      street: string;
-      city: string;
-      state: string;
-      zipCode: string;
-      country: string;
-    },
-  ): Promise<void>;
-
-  notifyUser(
-    recipientId: string,
-    type: string,
-    data: Record<string, unknown>,
-  ): Promise<void>;
-}
+import type { OrderActivities, ShippingAddressInput, PaymentMethodInput } from '../interfaces/order-activities.interface';
 
 @Injectable()
 export class OrderActivitiesImpl implements OrderActivities {
@@ -110,12 +61,7 @@ export class OrderActivitiesImpl implements OrderActivities {
     orderId: string,
     amount: number,
     currency: string,
-    method: {
-      type: string;
-      last4Digits: string;
-      expiryMonth: number;
-      expiryYear: number;
-    },
+    method: PaymentMethodInput,
   ): Promise<string> {
     const result = await this.paymentService.processPayment(
       orderId,
@@ -164,7 +110,7 @@ export class OrderActivitiesImpl implements OrderActivities {
 
   async createShipment(
     orderId: string,
-    address: ShippingAddress,
+    address: ShippingAddressInput,
   ): Promise<void> {
     await this.shippingService.createShipment(orderId, address);
   }
@@ -183,7 +129,6 @@ export class OrderActivitiesImpl implements OrderActivities {
 
   /**
    * Fetch an order, apply a mutation, and persist.
-   * Eliminates repeated fetch-check-mutate-save boilerplate.
    */
   private async mutateOrder(
     orderId: string,

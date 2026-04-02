@@ -6,7 +6,7 @@ import {
   ApplicationFailure,
 } from '@temporalio/workflow';
 
-import type { OrderActivities } from '../activities/order.activities';
+import type { OrderActivities } from '../interfaces/order-activities.interface';
 
 // Signal name constant
 export const CONFIRM_ORDER_SIGNAL = 'confirmOrder';

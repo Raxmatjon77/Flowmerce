@@ -1,4 +1,4 @@
-export interface NotificationResponseDto {
+export class NotificationResponseDto {
   id: string;
   recipientId: string;
   channel: string;

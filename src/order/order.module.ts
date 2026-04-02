@@ -28,8 +28,8 @@ import { InventoryServiceAdapter } from './infrastructure/adapters/inventory-ser
 import { PaymentServiceAdapter } from './infrastructure/adapters/payment-service.adapter';
 import { ShippingServiceAdapter } from './infrastructure/adapters/shipping-service.adapter';
 import { NotificationServiceAdapter } from './infrastructure/adapters/notification-service.adapter';
-import { OrderWorkflowOrchestrator } from './infrastructure/temporal/order-workflow-orchestrator';
-import { OrderActivitiesImpl } from './infrastructure/temporal/activities/order.activities';
+import { OrderWorkflowOrchestrator } from './infrastructure/temporal/orchestrator/order-workflow.orchestrator';
+import { OrderActivitiesImpl } from './infrastructure/temporal/activities/order-activities.impl';
 import { CreateOrderUseCase } from './application/use-cases/create-order/create-order.use-case';
 import { GetOrderUseCase } from './application/use-cases/get-order/get-order.use-case';
 import { ConfirmOrderUseCase } from './application/use-cases/confirm-order/confirm-order.use-case';

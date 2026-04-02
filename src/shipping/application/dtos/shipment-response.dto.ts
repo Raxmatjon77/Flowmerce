@@ -1,4 +1,4 @@
-export interface ShipmentResponseDto {
+export class ShipmentResponseDto {
   id: string;
   orderId: string;
   status: string;

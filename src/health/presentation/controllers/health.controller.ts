@@ -6,10 +6,14 @@ import {
   MemoryHealthIndicator,
   DiskHealthIndicator,
 } from '@nestjs/terminus';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Public } from '@shared/infrastructure/auth';
 import { DatabaseHealthIndicator } from '../../infrastructure/indicators/database.health';
 import { TemporalHealthIndicator } from '../../infrastructure/indicators/temporal.health';
 import { KafkaHealthIndicator } from '../../infrastructure/indicators/kafka.health';
 
+@ApiTags('Health')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

@@ -1,4 +1,10 @@
-export class InsufficientInventoryError extends Error {
+import { DomainError } from '../../../shared/domain/domain-error.base';
+import { ERROR_CODES } from '../../../shared/domain/error-codes';
+
+export class InsufficientInventoryError extends DomainError {
+  readonly code = ERROR_CODES.INSUFFICIENT_INVENTORY;
+  readonly httpStatus = 409;
+
   constructor(
     public readonly inventoryItemId: string,
     public readonly requested: number,
@@ -7,20 +13,23 @@ export class InsufficientInventoryError extends Error {
     super(
       `Insufficient inventory for item ${inventoryItemId}: requested ${requested}, available ${available}`,
     );
-    this.name = 'InsufficientInventoryError';
   }
 }
 
-export class InventoryNotFoundError extends Error {
+export class InventoryNotFoundError extends DomainError {
+  readonly code = ERROR_CODES.INVENTORY_NOT_FOUND;
+  readonly httpStatus = 404;
+
   constructor(public readonly identifier: string) {
     super(`Inventory item not found: ${identifier}`);
-    this.name = 'InventoryNotFoundError';
   }
 }
 
-export class InvalidReservationError extends Error {
+export class InvalidReservationError extends DomainError {
+  readonly code = ERROR_CODES.INVALID_RESERVATION;
+  readonly httpStatus = 400;
+
   constructor(message: string) {
     super(message);
-    this.name = 'InvalidReservationError';
   }
 }

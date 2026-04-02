@@ -10,6 +10,8 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Roles, Role } from '@shared/infrastructure/auth';
 import { CreateShipmentUseCase } from '@shipping/application/use-cases/create-shipment/create-shipment.use-case';
 import { GetShipmentUseCase } from '@shipping/application/use-cases/get-shipment/get-shipment.use-case';
 import { UpdateShipmentStatusUseCase } from '@shipping/application/use-cases/update-shipment-status/update-shipment-status.use-case';
@@ -18,6 +20,9 @@ import { ShipmentResponseDto } from '@shipping/application/dtos/shipment-respons
 import { CreateShipmentRequest } from '../dto/create-shipment.request';
 import { UpdateShipmentStatusRequest } from '../dto/update-shipment-status.request';
 
+@ApiTags('Shipments')
+@ApiBearerAuth()
+@Roles(Role.ADMIN, Role.SERVICE)
 @Controller('api/v1/shipments')
 export class ShippingController {
   private readonly logger = new Logger(ShippingController.name);
@@ -33,6 +38,8 @@ export class ShippingController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a shipment' })
+  @ApiResponse({ status: 201, description: 'Shipment created', type: ShipmentResponseDto })
   async createShipment(
     @Body() request: CreateShipmentRequest,
   ): Promise<ShipmentResponseDto> {
@@ -52,6 +59,9 @@ export class ShippingController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get shipment by ID' })
+  @ApiParam({ name: 'id', description: 'Shipment ID' })
+  @ApiResponse({ status: 200, description: 'Shipment retrieved', type: ShipmentResponseDto })
   async getShipment(@Param('id') id: string): Promise<ShipmentResponseDto> {
     this.logger.log(`Getting shipment for order ${id}`);
     return this.getShipmentUseCase.execute({ orderId: id });
@@ -59,6 +69,9 @@ export class ShippingController {
 
   @Patch(':id/status')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update shipment status' })
+  @ApiParam({ name: 'id', description: 'Shipment ID' })
+  @ApiResponse({ status: 200, description: 'Status updated' })
   async updateShipmentStatus(
     @Param('id') id: string,
     @Body() request: UpdateShipmentStatusRequest,

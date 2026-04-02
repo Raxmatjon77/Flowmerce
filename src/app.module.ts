@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { KafkaModule } from '@shared/infrastructure/kafka/kafka.module';
 import { TemporalModule } from '@shared/infrastructure/temporal/temporal.module';
 import { IdempotencyModule } from '@shared/infrastructure/idempotency';
+import { AuthModule } from '@shared/infrastructure/auth';
 import { HealthModule } from './health/health.module';
 import { OrderModule } from '@order/order.module';
 import { PaymentModule } from '@payment/payment.module';
@@ -11,6 +12,9 @@ import { NotificationModule } from '@notification/notification.module';
 
 @Module({
   imports: [
+    // Authentication & Authorization (global guards)
+    AuthModule,
+
     // Health checks (no dependencies, loads first)
     HealthModule,
 

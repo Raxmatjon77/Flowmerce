@@ -9,6 +9,8 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Roles, Role, Public } from '@shared/infrastructure/auth';
 import { GetInventoryUseCase } from '@inventory/application/use-cases/get-inventory/get-inventory.use-case';
 import { ReserveInventoryUseCase } from '@inventory/application/use-cases/reserve-inventory/reserve-inventory.use-case';
 import { ReleaseInventoryUseCase } from '@inventory/application/use-cases/release-inventory/release-inventory.use-case';
@@ -17,6 +19,8 @@ import { InventoryResponseDto } from '@inventory/application/dtos/inventory-resp
 import { ReserveInventoryRequest } from '../dto/reserve-inventory.request';
 import { ReleaseInventoryRequest } from '../dto/release-inventory.request';
 
+@ApiTags('Inventory')
+@ApiBearerAuth()
 @Controller('api/v1/inventory')
 export class InventoryController {
   private readonly logger = new Logger(InventoryController.name);
@@ -31,7 +35,11 @@ export class InventoryController {
   ) {}
 
   @Get(':id')
+  @Public()
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get inventory item by ID' })
+  @ApiParam({ name: 'id', description: 'Inventory item ID' })
+  @ApiResponse({ status: 200, description: 'Inventory item retrieved', type: InventoryResponseDto })
   async getInventoryById(
     @Param('id') id: string,
   ): Promise<InventoryResponseDto> {
@@ -40,7 +48,11 @@ export class InventoryController {
   }
 
   @Get('sku/:sku')
+  @Public()
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get inventory item by SKU' })
+  @ApiParam({ name: 'sku', description: 'Product SKU' })
+  @ApiResponse({ status: 200, description: 'Inventory item retrieved', type: InventoryResponseDto })
   async getInventoryBySku(
     @Param('sku') sku: string,
   ): Promise<InventoryResponseDto> {
@@ -49,7 +61,10 @@ export class InventoryController {
   }
 
   @Post('reserve')
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reserve inventory for an order' })
+  @ApiResponse({ status: 200, description: 'Inventory reserved' })
   async reserveInventory(
     @Body() request: ReserveInventoryRequest,
   ): Promise<{ message: string }> {
@@ -69,7 +84,10 @@ export class InventoryController {
   }
 
   @Post('release')
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Release inventory reservation' })
+  @ApiResponse({ status: 200, description: 'Inventory released' })
   async releaseInventory(
     @Body() request: ReleaseInventoryRequest,
   ): Promise<{ message: string }> {

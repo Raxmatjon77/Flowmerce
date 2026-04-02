@@ -7,28 +7,9 @@ import {
   Logger,
   BadRequestException,
 } from '@nestjs/common';
-import { Response } from 'express';
-
-// Domain error name -> HTTP status mapping
-const ERROR_STATUS_MAP: Record<string, HttpStatus> = {
-  // 404 Not Found
-  OrderNotFoundError: HttpStatus.NOT_FOUND,
-  PaymentNotFoundError: HttpStatus.NOT_FOUND,
-  InventoryNotFoundError: HttpStatus.NOT_FOUND,
-  ShipmentNotFoundError: HttpStatus.NOT_FOUND,
-  NotificationNotFoundError: HttpStatus.NOT_FOUND,
-
-  // 400 Bad Request
-  InvalidOrderError: HttpStatus.BAD_REQUEST,
-  InvalidReservationError: HttpStatus.BAD_REQUEST,
-
-  // 409 Conflict
-  InvalidOrderTransitionError: HttpStatus.CONFLICT,
-  InvalidPaymentTransitionError: HttpStatus.CONFLICT,
-  InvalidShipmentTransitionError: HttpStatus.CONFLICT,
-  InsufficientInventoryError: HttpStatus.CONFLICT,
-  NotificationAlreadySentError: HttpStatus.CONFLICT,
-};
+import { Request, Response } from 'express';
+import { DomainError } from '../../domain/domain-error.base';
+import { ERROR_CODES } from '../../domain/error-codes';
 
 @Catch()
 export class DomainExceptionFilter implements ExceptionFilter {
@@ -37,6 +18,9 @@ export class DomainExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+    const path = request?.url;
+    const timestamp = new Date().toISOString();
 
     // Handle NestJS HttpException (including BadRequestException from validation)
     if (exception instanceof HttpException) {
@@ -50,13 +34,16 @@ export class DomainExceptionFilter implements ExceptionFilter {
       // Handle validation errors (BadRequestException with message array)
       if (exception instanceof BadRequestException) {
         const responseBody = exceptionResponse as Record<string, unknown>;
-        
+        const messages = responseBody.message;
+
         response.status(status).json({
           statusCode: status,
+          code: ERROR_CODES.VALIDATION_ERROR,
           error: 'ValidationError',
-          message: responseBody.message || 'Validation failed',
-          details: Array.isArray(responseBody.message) ? responseBody.message : undefined,
-          timestamp: new Date().toISOString(),
+          message: Array.isArray(messages) ? 'Validation failed' : messages || 'Validation failed',
+          ...(Array.isArray(messages) ? { details: messages } : {}),
+          timestamp,
+          path,
         });
         return;
       }
@@ -64,33 +51,34 @@ export class DomainExceptionFilter implements ExceptionFilter {
       // Other HTTP exceptions
       response.status(status).json({
         statusCode: status,
+        code: ERROR_CODES.INTERNAL_ERROR,
         error: exception.name,
-        message: typeof exceptionResponse === 'string' 
-          ? exceptionResponse 
-          : (exceptionResponse as Record<string, unknown>).message || exception.message,
-        timestamp: new Date().toISOString(),
+        message:
+          typeof exceptionResponse === 'string'
+            ? exceptionResponse
+            : (exceptionResponse as Record<string, unknown>).message ||
+              exception.message,
+        timestamp,
+        path,
       });
       return;
     }
 
-    // Handle domain errors
-    if (exception instanceof Error) {
-      const errorName = exception.name || exception.constructor.name;
-      const httpStatus = ERROR_STATUS_MAP[errorName];
+    // Handle domain errors (extends DomainError with code and httpStatus)
+    if (exception instanceof DomainError) {
+      this.logger.warn(
+        `Domain error [${exception.name}]: ${exception.message}`,
+      );
 
-      if (httpStatus) {
-        this.logger.warn(
-          `Domain error [${errorName}]: ${exception.message}`,
-        );
-
-        response.status(httpStatus).json({
-          statusCode: httpStatus,
-          error: errorName,
-          message: exception.message,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
+      response.status(exception.httpStatus).json({
+        statusCode: exception.httpStatus,
+        code: exception.code,
+        error: exception.name,
+        message: exception.message,
+        timestamp,
+        path,
+      });
+      return;
     }
 
     // For unrecognized errors, return 500
@@ -104,11 +92,14 @@ export class DomainExceptionFilter implements ExceptionFilter {
 
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      code: ERROR_CODES.INTERNAL_ERROR,
       error: 'InternalServerError',
-      message: process.env.NODE_ENV === 'production' 
-        ? 'An unexpected error occurred' 
-        : message,
-      timestamp: new Date().toISOString(),
+      message:
+        process.env.NODE_ENV === 'production'
+          ? 'An unexpected error occurred'
+          : message,
+      timestamp,
+      path,
     });
   }
 }

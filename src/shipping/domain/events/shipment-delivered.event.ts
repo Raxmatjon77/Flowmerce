@@ -1,4 +1,5 @@
 import { DomainEvent } from '@shared/domain';
+import { ShippingEventType } from '@shared/infrastructure/kafka';
 
 export class ShipmentDeliveredEvent extends DomainEvent {
   constructor(
@@ -6,7 +7,7 @@ export class ShipmentDeliveredEvent extends DomainEvent {
     public readonly orderId: string,
     public readonly deliveredAt: Date,
   ) {
-    super(shipmentId, 'shipment.delivered');
+    super(shipmentId, ShippingEventType.DELIVERED);
   }
 
   toPrimitives(): Record<string, unknown> {

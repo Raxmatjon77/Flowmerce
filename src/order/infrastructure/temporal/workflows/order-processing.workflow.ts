@@ -7,54 +7,27 @@ import {
 } from '@temporalio/workflow';
 
 import type { OrderActivities } from '../interfaces/order-activities.interface';
+import type { OrderProcessingInput } from './workflow.interfaces';
+import {
+  CONFIRM_ORDER_SIGNAL,
+  WORKFLOW_ORDER_STATUS,
+  WORKFLOW_NOTIFICATION_TYPE,
+  WORKFLOW_TIMEOUTS,
+  WORKFLOW_RETRY_POLICY,
+} from './workflow.constants';
 
-// Signal name constant
-export const CONFIRM_ORDER_SIGNAL = 'confirmOrder';
+// Re-export for external consumers
+export { CONFIRM_ORDER_SIGNAL } from './workflow.constants';
+export type { OrderProcessingInput } from './workflow.interfaces';
+
 export const confirmOrderSignal = defineSignal(CONFIRM_ORDER_SIGNAL);
 
-// Status constants used in workflow (cannot import from outside workflow sandbox)
-const STATUS = {
-  INVENTORY_RESERVED: 'INVENTORY_RESERVED',
-  PAYMENT_PROCESSED: 'PAYMENT_PROCESSED',
-  SHIPPED: 'SHIPPED',
-} as const;
-
-const NOTIFICATION_TYPE = {
-  ORDER_CONFIRMED: 'ORDER_CONFIRMED',
-  ORDER_CANCELLED: 'ORDER_CANCELLED',
-} as const;
-
-const CONFIRMATION_TIMEOUT = '24h';
-
-export interface OrderProcessingInput {
-  orderId: string;
-  customerId: string;
-  items: Array<{ sku: string; quantity: number }>;
-  paymentDetails: {
-    amount: number;
-    currency: string;
-    method: {
-      type: string;
-      last4Digits: string;
-      expiryMonth: number;
-      expiryYear: number;
-    };
-  };
-  shippingAddress: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-}
-
 const activities = proxyActivities<OrderActivities>({
-  startToCloseTimeout: '30s',
+  startToCloseTimeout: WORKFLOW_TIMEOUTS.ACTIVITY_START_TO_CLOSE,
   retry: {
-    maximumAttempts: 3,
-    initialInterval: '1s',
-    backoffCoefficient: 2,
+    maximumAttempts: WORKFLOW_RETRY_POLICY.MAXIMUM_ATTEMPTS,
+    initialInterval: WORKFLOW_RETRY_POLICY.INITIAL_INTERVAL,
+    backoffCoefficient: WORKFLOW_RETRY_POLICY.BACKOFF_COEFFICIENT,
   },
 });
 
@@ -74,7 +47,7 @@ export async function orderProcessingWorkflow(
     compensations.push(() =>
       activities.releaseInventory(input.orderId, input.items),
     );
-    await activities.updateOrderStatus(input.orderId, STATUS.INVENTORY_RESERVED);
+    await activities.updateOrderStatus(input.orderId, WORKFLOW_ORDER_STATUS.INVENTORY_RESERVED);
 
     // Step 2: Process payment
     const paymentId = await activities.processPayment(
@@ -84,10 +57,10 @@ export async function orderProcessingWorkflow(
       input.paymentDetails.method,
     );
     compensations.push(() => activities.refundPayment(paymentId));
-    await activities.updateOrderStatus(input.orderId, STATUS.PAYMENT_PROCESSED);
+    await activities.updateOrderStatus(input.orderId, WORKFLOW_ORDER_STATUS.PAYMENT_PROCESSED);
 
     // Step 3: Wait for external confirmation signal
-    const wasConfirmed = await condition(() => confirmed, CONFIRMATION_TIMEOUT);
+    const wasConfirmed = await condition(() => confirmed, WORKFLOW_TIMEOUTS.CONFIRMATION_WAIT);
     if (!wasConfirmed) {
       throw ApplicationFailure.nonRetryable(
         'Order confirmation timed out after 24 hours',
@@ -97,10 +70,10 @@ export async function orderProcessingWorkflow(
 
     // Step 4: Create shipment
     await activities.createShipment(input.orderId, input.shippingAddress);
-    await activities.updateOrderStatus(input.orderId, STATUS.SHIPPED);
+    await activities.updateOrderStatus(input.orderId, WORKFLOW_ORDER_STATUS.SHIPPED);
 
     // Step 5: Notify user
-    await activities.notifyUser(input.customerId, NOTIFICATION_TYPE.ORDER_CONFIRMED, {
+    await activities.notifyUser(input.customerId, WORKFLOW_NOTIFICATION_TYPE.ORDER_CONFIRMED, {
       orderId: input.orderId,
     });
   } catch (error) {
@@ -116,7 +89,7 @@ export async function orderProcessingWorkflow(
     // Cancel the order
     try {
       await activities.cancelOrder(input.orderId);
-      await activities.notifyUser(input.customerId, NOTIFICATION_TYPE.ORDER_CANCELLED, {
+      await activities.notifyUser(input.customerId, WORKFLOW_NOTIFICATION_TYPE.ORDER_CANCELLED, {
         orderId: input.orderId,
         reason: error instanceof Error ? error.message : 'Unknown error',
       });

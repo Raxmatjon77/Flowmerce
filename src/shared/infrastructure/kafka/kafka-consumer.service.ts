@@ -22,7 +22,10 @@ export class KafkaConsumerService {
     this.consumers.push(consumer);
 
     await consumer.connect();
-    await consumer.subscribe({ topic: options.topic, fromBeginning: false });
+    await consumer.subscribe({
+      topic: options.topic,
+      fromBeginning: false
+    });
 
     await consumer.run({
       eachMessage: async (payload: EachMessagePayload) => {

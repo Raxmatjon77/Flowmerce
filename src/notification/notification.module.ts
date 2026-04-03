@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { IdempotencyModule } from '@shared/infrastructure/idempotency';
 import { KyselyModule } from '@shared/infrastructure/database/kysely.module';
 import {
   NotificationDatabase,
@@ -24,6 +25,7 @@ import { NotificationController } from './presentation/controllers/notification.
 
 @Module({
   imports: [
+    IdempotencyModule,
     KyselyModule.forFeature<NotificationDatabase>({
       host: process.env.NOTIFICATION_DB_HOST || 'localhost',
       port: parseInt(process.env.NOTIFICATION_DB_PORT || '5436', 10),

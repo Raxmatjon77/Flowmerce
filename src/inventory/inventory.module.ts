@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { IdempotencyModule } from '@shared/infrastructure/idempotency';
 import { KyselyModule } from '@shared/infrastructure/database/kysely.module';
 import {
   InventoryDatabase,
@@ -18,6 +19,7 @@ import { InventoryController } from './presentation/controllers/inventory.contro
 
 @Module({
   imports: [
+    IdempotencyModule,
     KyselyModule.forFeature<InventoryDatabase>({
       host: process.env.INVENTORY_DB_HOST || 'localhost',
       port: parseInt(process.env.INVENTORY_DB_PORT || '5434', 10),

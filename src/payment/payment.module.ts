@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { IdempotencyModule } from '@shared/infrastructure/idempotency';
 import { KyselyModule } from '@shared/infrastructure/database/kysely.module';
 import { PaymentDatabase } from './infrastructure/database/tables/payment.table';
 import {
@@ -22,6 +23,7 @@ import { PaymentController } from './presentation/controllers/payment.controller
 
 @Module({
   imports: [
+    IdempotencyModule,
     KyselyModule.forFeature<PaymentDatabase>({
       host: process.env.PAYMENT_DB_HOST || 'localhost',
       port: parseInt(process.env.PAYMENT_DB_PORT || '5433', 10),

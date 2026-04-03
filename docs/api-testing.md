@@ -12,6 +12,26 @@ npm run worker:dev          # Start Temporal worker (terminal 2)
 
 Base URL: `http://localhost:3000`
 
+### Available Inventory SKUs (from seed data)
+
+| SKU | Product | Qty |
+|-----|---------|-----|
+| `SKU-LAPTOP-001` | MacBook Pro 14" | 100 |
+| `SKU-LAPTOP-002` | MacBook Pro 16" | 50 |
+| `SKU-LAPTOP-003` | MacBook Air 15" | 200 |
+| `SKU-MOUSE-001` | Magic Mouse | 500 |
+| `SKU-KEYBOARD-001` | Magic Keyboard with Touch ID | 300 |
+| `SKU-MONITOR-001` | Studio Display 27" | 75 |
+| `SKU-MONITOR-002` | Pro Display XDR 32" | 30 |
+| `SKU-HEADPHONES-001` | AirPods Max | 200 |
+| `SKU-HEADPHONES-002` | AirPods Pro 2nd Gen | 600 |
+| `SKU-PHONE-001` | iPhone 15 Pro | 150 |
+| `SKU-PHONE-002` | iPhone 15 Pro Max | 120 |
+| `SKU-TABLET-001` | iPad Pro 12.9" | 120 |
+| `SKU-WATCH-001` | Apple Watch Ultra 2 | 80 |
+| `SKU-CHARGER-001` | MagSafe Charger | 1000 |
+| `SKU-CABLE-001` | USB-C to Lightning Cable 2m | 2000 |
+
 ---
 
 ## Step 0: Authenticate
@@ -50,7 +70,7 @@ export ADMIN_TOKEN=$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
 ## Step 1: Check Inventory (Public)
 
 ```bash
-curl -s http://localhost:3000/api/v1/inventory/sku/IPHONE-15-PRO | jq .
+curl -s http://localhost:3000/api/v1/inventory/sku/SKU-PHONE-001 | jq .
 ```
 
 ---
@@ -66,15 +86,15 @@ curl -s -X POST http://localhost:3000/api/v1/orders \
     "customerId": "customer-001",
     "items": [
       {
-        "productId": "IPHONE-15-PRO",
+        "productId": "SKU-PHONE-001",
         "productName": "iPhone 15 Pro",
         "quantity": 1,
         "unitPrice": 999.99,
         "currency": "USD"
       },
       {
-        "productId": "AIRPODS-PRO",
-        "productName": "AirPods Pro",
+        "productId": "SKU-HEADPHONES-002",
+        "productName": "AirPods Pro 2nd Gen",
         "quantity": 2,
         "unitPrice": 249.99,
         "currency": "USD"
@@ -191,7 +211,7 @@ curl -s -X POST http://localhost:3000/api/v1/inventory/reserve \
   -d '{
     "orderId": "manual-test-001",
     "items": [
-      { "sku": "IPHONE-15-PRO", "quantity": 1 }
+      { "sku": "SKU-PHONE-001", "quantity": 1 }
     ]
   }' | jq .
 
@@ -202,7 +222,7 @@ curl -s -X POST http://localhost:3000/api/v1/inventory/release \
   -d '{
     "orderId": "manual-test-001",
     "items": [
-      { "sku": "IPHONE-15-PRO", "quantity": 1 }
+      { "sku": "SKU-PHONE-001", "quantity": 1 }
     ]
   }' | jq .
 ```
@@ -291,7 +311,7 @@ echo "Tokens acquired"
 
 echo ""
 echo "=== Checking Inventory ==="
-curl -s $BASE/api/v1/inventory/sku/IPHONE-15-PRO | jq '{sku: .sku, available: .availableQuantity}'
+curl -s $BASE/api/v1/inventory/sku/SKU-PHONE-001 | jq '{sku: .sku, available: .availableQuantity}'
 
 echo ""
 echo "=== Creating Order ==="
@@ -302,7 +322,7 @@ ORDER=$(curl -s -X POST $BASE/api/v1/orders \
   -H "Idempotency-Key: $IDEMPOTENCY_KEY" \
   -d '{
     "customerId":"customer-001",
-    "items":[{"productId":"IPHONE-15-PRO","productName":"iPhone 15 Pro","quantity":1,"unitPrice":999.99,"currency":"USD"}],
+    "items":[{"productId":"SKU-PHONE-001","productName":"iPhone 15 Pro","quantity":1,"unitPrice":999.99,"currency":"USD"}],
     "shippingAddress":{"street":"123 Main St","city":"San Francisco","state":"CA","zipCode":"94105","country":"US"}
   }')
 ORDER_ID=$(echo $ORDER | jq -r '.id')

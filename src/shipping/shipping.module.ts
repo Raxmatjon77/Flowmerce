@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { IdempotencyModule } from '@shared/infrastructure/idempotency';
 import { KyselyModule } from '@shared/infrastructure/database/kysely.module';
 import {
   ShippingDatabase,
@@ -22,6 +23,7 @@ import { ShippingController } from './presentation/controllers/shipping.controll
 
 @Module({
   imports: [
+    IdempotencyModule,
     KyselyModule.forFeature<ShippingDatabase>({
       host: process.env.SHIPPING_DB_HOST || 'localhost',
       port: parseInt(process.env.SHIPPING_DB_PORT || '5435', 10),

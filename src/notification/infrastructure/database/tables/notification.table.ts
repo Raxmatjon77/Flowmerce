@@ -1,5 +1,5 @@
 import { Generated } from 'kysely';
-import { OutboxEvent } from '@shared/infrastructure/kafka';
+import { OutboxEventRow } from '@shared/infrastructure/kafka';
 
 export interface NotificationTable {
   id: string;
@@ -17,7 +17,7 @@ export interface NotificationTable {
 
 export interface NotificationDatabase {
   notifications: NotificationTable;
-  outbox_events: OutboxEvent;
+  outbox_events: OutboxEventRow;
 }
 
 export const KYSELY_NOTIFICATION_DB = Symbol('KYSELY_NOTIFICATION_DB');

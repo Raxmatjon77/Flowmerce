@@ -1,5 +1,5 @@
 import { Generated } from 'kysely';
-import { OutboxEvent } from '@shared/infrastructure/kafka';
+import { OutboxEventRow } from '@shared/infrastructure/kafka';
 
 export interface InventoryItemTable {
   id: string;
@@ -24,7 +24,7 @@ export interface ReservationTable {
 export interface InventoryDatabase {
   inventory_items: InventoryItemTable;
   reservations: ReservationTable;
-  outbox_events: OutboxEvent;
+  outbox_events: OutboxEventRow;
 }
 
 export const KYSELY_INVENTORY_DB = Symbol('KYSELY_INVENTORY_DB');

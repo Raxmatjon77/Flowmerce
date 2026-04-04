@@ -15,4 +15,4 @@ export {
 export { KafkaProducerService, KafkaMessage } from './kafka-producer.service';
 export { KafkaConsumerService, ConsumeOptions } from './kafka-consumer.service';
 export { BaseEventConsumer, type EventHandler } from './base-event-consumer';
-export { OutboxPublisherService, OutboxEvent, OutboxTable } from './outbox/outbox-publisher.service';
+export { OutboxPublisherService, OutboxEventRow, OutboxTable } from './outbox/outbox-publisher.service';

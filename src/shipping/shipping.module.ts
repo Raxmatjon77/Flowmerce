@@ -20,6 +20,7 @@ import { GetShipmentUseCase } from './application/use-cases/get-shipment/get-shi
 import { SHIPPING_USE_CASE_TOKENS } from './application/injection-tokens';
 import { ShippingEventConsumer } from './infrastructure/kafka/shipping-event-consumer';
 import { ShippingController } from './presentation/controllers/shipping.controller';
+import { ShippingOutboxPollerService } from './infrastructure/kafka/shipping-outbox-poller.service';
 
 @Module({
   imports: [
@@ -82,6 +83,9 @@ import { ShippingController } from './presentation/controllers/shipping.controll
 
     // Kafka event consumer
     ShippingEventConsumer,
+
+    // Outbox publisher poller
+    ShippingOutboxPollerService,
   ],
   exports: [
     SHIPMENT_REPOSITORY,

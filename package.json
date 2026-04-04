@@ -22,7 +22,7 @@
     "seed:inventory": "ts-node scripts/seed-inventory.ts",
     "test:order": "bash scripts/test-order.sh",
     "worker": "ts-node -r tsconfig-paths/register src/worker/worker.ts",
-    "worker:dev": "ts-node-dev -r tsconfig-paths/register --respawn src/worker/worker.ts",
+    "worker:dev": "ts-node -r tsconfig-paths/register src/worker/worker.ts",
     "worker:prod": "node dist/worker/worker.js"
   },
   "dependencies": {

@@ -20,6 +20,7 @@ import { GetPaymentUseCase } from './application/use-cases/get-payment/get-payme
 import { PAYMENT_USE_CASE_TOKENS } from './application/injection-tokens';
 import { PaymentEventConsumer } from './infrastructure/kafka/payment-event-consumer';
 import { PaymentController } from './presentation/controllers/payment.controller';
+import { PaymentOutboxPollerService } from './infrastructure/kafka/payment-outbox-poller.service';
 
 @Module({
   imports: [
@@ -86,6 +87,9 @@ import { PaymentController } from './presentation/controllers/payment.controller
 
     // Kafka event consumer
     PaymentEventConsumer,
+
+    // Outbox publisher poller
+    PaymentOutboxPollerService,
   ],
   exports: [
     PAYMENT_REPOSITORY,

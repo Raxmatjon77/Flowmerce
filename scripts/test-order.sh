@@ -9,15 +9,41 @@ NC='\033[0m' # No Color
 
 API_URL="${API_URL:-http://localhost:3000}"
 
+get_token () {
+  local user_id="$1"
+  local role="$2"
+
+  local resp
+  resp=$(curl -s -X POST "${API_URL}/api/v1/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"userId\":\"${user_id}\",\"role\":\"${role}\"}")
+
+  echo "$resp" | python3 -c 'import sys, json; print(json.load(sys.stdin)["accessToken"])' 2>/dev/null
+}
+
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}   Flowmerce Order Test Script${NC}"
 echo -e "${BLUE}========================================${NC}"
+echo ""
+
+# Login
+echo -e "${YELLOW}[0/4] Logging in...${NC}"
+CUSTOMER_TOKEN=$(get_token "cust-test-001" "customer")
+ADMIN_TOKEN=$(get_token "admin-test-001" "admin")
+
+if [[ -z "$CUSTOMER_TOKEN" || -z "$ADMIN_TOKEN" ]]; then
+  echo -e "${RED}❌ Failed to login and obtain JWT tokens${NC}"
+  exit 1
+fi
+
+echo -e "${GREEN}✅ Logged in (customer + admin tokens obtained)${NC}"
 echo ""
 
 # 1. Create Order
 echo -e "${YELLOW}[1/4] Creating order...${NC}"
 ORDER_RESPONSE=$(curl -s -X POST "${API_URL}/api/v1/orders" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${CUSTOMER_TOKEN}" \
   -d '{
     "customerId": "cust-test-001",
     "items": [
@@ -59,14 +85,16 @@ echo ""
 # 2. Get Order
 echo -e "${YELLOW}[2/4] Fetching order status...${NC}"
 sleep 2  # Wait for workflow to start
-GET_RESPONSE=$(curl -s "${API_URL}/api/v1/orders/${ORDER_ID}")
+GET_RESPONSE=$(curl -s "${API_URL}/api/v1/orders/${ORDER_ID}" \
+  -H "Authorization: Bearer ${CUSTOMER_TOKEN}")
 echo "$GET_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$GET_RESPONSE"
 
 echo ""
 
 # 3. Confirm Order (send signal to Temporal)
 echo -e "${YELLOW}[3/4] Confirming order (sending Temporal signal)...${NC}"
-CONFIRM_RESPONSE=$(curl -s -X POST "${API_URL}/api/v1/orders/${ORDER_ID}/confirm")
+CONFIRM_RESPONSE=$(curl -s -X POST "${API_URL}/api/v1/orders/${ORDER_ID}/confirm" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}")
 echo "$CONFIRM_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$CONFIRM_RESPONSE"
 
 echo ""
@@ -74,7 +102,8 @@ echo ""
 # 4. Final status check
 echo -e "${YELLOW}[4/4] Final order status...${NC}"
 sleep 3  # Wait for workflow to process
-FINAL_RESPONSE=$(curl -s "${API_URL}/api/v1/orders/${ORDER_ID}")
+FINAL_RESPONSE=$(curl -s "${API_URL}/api/v1/orders/${ORDER_ID}" \
+  -H "Authorization: Bearer ${CUSTOMER_TOKEN}")
 echo "$FINAL_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$FINAL_RESPONSE"
 
 echo ""

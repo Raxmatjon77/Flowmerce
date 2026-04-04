@@ -9,6 +9,7 @@ coverage/
 .idea/
 .vscode/
 .DS_Store
+.codex
 *.swp
 *.swo
 *.bak

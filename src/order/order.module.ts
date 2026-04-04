@@ -38,6 +38,7 @@ import { UpdateOrderStatusUseCase } from './application/use-cases/update-order-s
 import { ORDER_USE_CASE_TOKENS } from './application/injection-tokens';
 import { OrderController } from './presentation/controllers/order.controller';
 import { OrderEventConsumer } from './infrastructure/kafka/order-event-consumer';
+import { OrderOutboxPollerService } from './infrastructure/kafka/order-outbox-poller.service';
 import { PaymentModule } from '@payment/payment.module';
 import { InventoryModule } from '@inventory/inventory.module';
 import { ShippingModule } from '@shipping/shipping.module';
@@ -125,6 +126,9 @@ import { NotificationModule } from '@notification/notification.module';
 
     // Kafka event consumer
     OrderEventConsumer,
+
+    // Outbox publisher poller (publishes outbox_events -> Kafka)
+    OrderOutboxPollerService,
   ],
   exports: [
     ORDER_REPOSITORY,

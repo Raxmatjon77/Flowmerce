@@ -26,18 +26,41 @@ export class UpdateOrderStatusUseCase
       throw new OrderNotFoundError(input.orderId);
     }
 
+    // Idempotency / out-of-order protection:
+    // Kafka events can arrive late or be duplicated; in those cases we should not throw,
+    // otherwise the consumer will retry/DLQ and spam errors.
+    if (order.status.value === input.status) {
+      return { orderId: order.id, status: order.status.toString() };
+    }
+
     switch (input.status) {
       case OrderStatusEnum.INVENTORY_RESERVED:
-        order.reserveInventory();
+        try {
+          order.reserveInventory();
+        } catch {
+          return { orderId: order.id, status: order.status.toString() };
+        }
         break;
       case OrderStatusEnum.PAYMENT_PROCESSED:
-        order.processPayment();
+        try {
+          order.processPayment();
+        } catch {
+          return { orderId: order.id, status: order.status.toString() };
+        }
         break;
       case OrderStatusEnum.SHIPPED:
-        order.ship();
+        try {
+          order.ship();
+        } catch {
+          return { orderId: order.id, status: order.status.toString() };
+        }
         break;
       case OrderStatusEnum.DELIVERED:
-        order.deliver();
+        try {
+          order.deliver();
+        } catch {
+          return { orderId: order.id, status: order.status.toString() };
+        }
         break;
       default:
         throw new Error(`Unsupported status transition: ${input.status}`);

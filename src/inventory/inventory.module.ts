@@ -16,6 +16,7 @@ import { GetInventoryUseCase } from './application/use-cases/get-inventory/get-i
 import { INVENTORY_USE_CASE_TOKENS } from './application/injection-tokens';
 import { InventoryEventConsumer } from './infrastructure/kafka/inventory-event-consumer';
 import { InventoryController } from './presentation/controllers/inventory.controller';
+import { InventoryOutboxPollerService } from './infrastructure/kafka/inventory-outbox-poller.service';
 
 @Module({
   imports: [
@@ -81,6 +82,9 @@ import { InventoryController } from './presentation/controllers/inventory.contro
 
     // Kafka event consumer
     InventoryEventConsumer,
+
+    // Outbox publisher poller
+    InventoryOutboxPollerService,
   ],
   exports: [
     INVENTORY_REPOSITORY,

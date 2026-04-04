@@ -3,6 +3,7 @@ import { KafkaProducerService } from './kafka-producer.service';
 import { KafkaConsumerService } from './kafka-consumer.service';
 import { Kafka } from 'kafkajs';
 import { KAFKA_CLIENT } from './kafka.constants';
+import { OutboxPublisherService } from './outbox/outbox-publisher.service';
 
 export interface KafkaModuleOptions {
   brokers: string[];
@@ -27,8 +28,14 @@ export class KafkaModule {
         },
         KafkaProducerService,
         KafkaConsumerService,
+        OutboxPublisherService,
       ],
-      exports: [KAFKA_CLIENT, KafkaProducerService, KafkaConsumerService],
+      exports: [
+        KAFKA_CLIENT,
+        KafkaProducerService,
+        KafkaConsumerService,
+        OutboxPublisherService,
+      ],
     };
   }
 }

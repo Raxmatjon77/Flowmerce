@@ -1,5 +1,5 @@
 import { Generated } from 'kysely';
-import { OutboxEvent } from '@shared/infrastructure/kafka';
+import { OutboxEventRow } from '@shared/infrastructure/kafka';
 
 export interface ShipmentTable {
   id: string;
@@ -20,7 +20,7 @@ export interface ShipmentTable {
 
 export interface ShippingDatabase {
   shipments: ShipmentTable;
-  outbox_events: OutboxEvent;
+  outbox_events: OutboxEventRow;
 }
 
 export const KYSELY_SHIPPING_DB = Symbol('KYSELY_SHIPPING_DB');

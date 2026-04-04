@@ -22,6 +22,7 @@ import { GetNotificationsUseCase } from './application/use-cases/get-notificatio
 import { NOTIFICATION_USE_CASE_TOKENS } from './application/injection-tokens';
 import { NotificationEventConsumer } from './infrastructure/kafka/notification-event-consumer';
 import { NotificationController } from './presentation/controllers/notification.controller';
+import { NotificationOutboxPollerService } from './infrastructure/kafka/notification-outbox-poller.service';
 
 @Module({
   imports: [
@@ -79,6 +80,9 @@ import { NotificationController } from './presentation/controllers/notification.
 
     // Kafka event consumer
     NotificationEventConsumer,
+
+    // Outbox publisher poller
+    NotificationOutboxPollerService,
   ],
   exports: [
     NOTIFICATION_REPOSITORY,

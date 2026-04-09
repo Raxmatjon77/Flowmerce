@@ -9,6 +9,7 @@ import { PaymentModule } from '@payment/payment.module';
 import { InventoryModule } from '@inventory/inventory.module';
 import { ShippingModule } from '@shipping/shipping.module';
 import { NotificationModule } from '@notification/notification.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { NotificationModule } from '@notification/notification.module';
     InventoryModule,
     ShippingModule,
     NotificationModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

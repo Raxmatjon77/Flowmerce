@@ -24,6 +24,7 @@ export interface OutboxTable {
 export class OutboxPublisherService {
   private readonly logger = new Logger(OutboxPublisherService.name);
   private readonly pollers = new Map<string, NodeJS.Timeout>();
+  private readonly disabledPollers = new Set<string>();
 
   constructor(private readonly kafkaProducer: KafkaProducerService) {}
 
@@ -38,9 +39,21 @@ export class OutboxPublisherService {
     }
 
     const intervalId = setInterval(async () => {
+      if (this.disabledPollers.has(pollerId)) {
+        return;
+      }
+
       try {
         await this.publishPendingEvents(db);
       } catch (error) {
+        if (this.isMissingOutboxTableError(error)) {
+          this.disabledPollers.add(pollerId);
+          this.logger.error(
+            `Outbox polling disabled for ${pollerId}: missing "outbox_events" table. Run the corresponding database migration before starting this service.`,
+          );
+          return;
+        }
+
         this.logger.error(`Outbox polling error: ${error}`);
       }
     }, intervalMs);
@@ -54,6 +67,7 @@ export class OutboxPublisherService {
     if (!intervalId) return;
     clearInterval(intervalId);
     this.pollers.delete(pollerId);
+    this.disabledPollers.delete(pollerId);
     this.logger.log(`Outbox poller stopped: ${pollerId}`);
   }
 
@@ -103,5 +117,16 @@ export class OutboxPublisherService {
         );
       }
     }
+  }
+
+  private isMissingOutboxTableError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    return (
+      error.message.includes('relation "outbox_events" does not exist') ||
+      error.message.includes("relation 'outbox_events' does not exist")
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -7,7 +7,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Roles, Role } from '@shared/infrastructure/auth';
-import { DashboardService } from '../../application/dashboard.service';
 import {
   DashboardActivityResponseDto,
   DashboardHealthResponseDto,
@@ -19,20 +18,51 @@ import {
   DashboardPaymentListResponseDto,
   DashboardShipmentListResponseDto,
 } from '../../application/dtos/dashboard-response.dto';
+import { DASHBOARD_USE_CASE_TOKENS } from '../../application/injection-tokens';
+import { ListDashboardActivityUseCase } from '../../application/use-cases/list-dashboard-activity/list-dashboard-activity.use-case';
+import { GetDashboardHealthUseCase } from '../../application/use-cases/get-dashboard-health/get-dashboard-health.use-case';
+import { ListDashboardInventoryUseCase } from '../../application/use-cases/list-dashboard-inventory/list-dashboard-inventory.use-case';
+import { ListDashboardNotificationsUseCase } from '../../application/use-cases/list-dashboard-notifications/list-dashboard-notifications.use-case';
+import { GetDashboardOrderDetailUseCase } from '../../application/use-cases/get-dashboard-order-detail/get-dashboard-order-detail.use-case';
+import { GetDashboardOverviewUseCase } from '../../application/use-cases/get-dashboard-overview/get-dashboard-overview.use-case';
+import { ListDashboardOrdersUseCase } from '../../application/use-cases/list-dashboard-orders/list-dashboard-orders.use-case';
+import { ListDashboardPaymentsUseCase } from '../../application/use-cases/list-dashboard-payments/list-dashboard-payments.use-case';
+import { ListDashboardShipmentsUseCase } from '../../application/use-cases/list-dashboard-shipments/list-dashboard-shipments.use-case';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
 @Roles(Role.ADMIN)
 @Controller('api/v1/dashboard')
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) {}
+  constructor(
+    @Inject(DASHBOARD_USE_CASE_TOKENS.GET_OVERVIEW)
+    private readonly getDashboardOverviewUseCase: GetDashboardOverviewUseCase,
+    @Inject(DASHBOARD_USE_CASE_TOKENS.LIST_ORDERS)
+    private readonly listDashboardOrdersUseCase: ListDashboardOrdersUseCase,
+    @Inject(DASHBOARD_USE_CASE_TOKENS.GET_ORDER_DETAIL)
+    private readonly getDashboardOrderDetailUseCase: GetDashboardOrderDetailUseCase,
+    @Inject(DASHBOARD_USE_CASE_TOKENS.LIST_INVENTORY)
+    private readonly listDashboardInventoryUseCase: ListDashboardInventoryUseCase,
+    @Inject(DASHBOARD_USE_CASE_TOKENS.LIST_PAYMENTS)
+    private readonly listDashboardPaymentsUseCase: ListDashboardPaymentsUseCase,
+    @Inject(DASHBOARD_USE_CASE_TOKENS.LIST_SHIPMENTS)
+    private readonly listDashboardShipmentsUseCase: ListDashboardShipmentsUseCase,
+    @Inject(DASHBOARD_USE_CASE_TOKENS.LIST_NOTIFICATIONS)
+    private readonly listDashboardNotificationsUseCase: ListDashboardNotificationsUseCase,
+    @Inject(DASHBOARD_USE_CASE_TOKENS.GET_HEALTH)
+    private readonly getDashboardHealthUseCase: GetDashboardHealthUseCase,
+    @Inject(DASHBOARD_USE_CASE_TOKENS.LIST_ACTIVITY)
+    private readonly listDashboardActivityUseCase: ListDashboardActivityUseCase,
+  ) {}
 
   @Get('overview')
   @ApiOperation({ summary: 'Get dashboard overview metrics and widgets' })
   async getOverview(
     @Query('limit') limit?: string,
   ): Promise<DashboardOverviewResponseDto> {
-    return this.dashboardService.getOverview(this.parseNumber(limit, 10));
+    return this.getDashboardOverviewUseCase.execute({
+      limit: this.parseNumber(limit, 10),
+    });
   }
 
   @Get('orders')
@@ -45,7 +75,7 @@ export class DashboardController {
     @Query('status') status?: string,
     @Query('limit') limit?: string,
   ): Promise<DashboardOrderListResponseDto> {
-    return this.dashboardService.listOrders({
+    return this.listDashboardOrdersUseCase.execute({
       q,
       status,
       limit: this.parseNumber(limit, 50),
@@ -56,7 +86,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Get detailed dashboard order view' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   async getOrderDetail(@Param('id') id: string): Promise<DashboardOrderDetailDto> {
-    return this.dashboardService.getOrderDetail(id);
+    return this.getDashboardOrderDetailUseCase.execute({ orderId: id });
   }
 
   @Get('inventory')
@@ -66,7 +96,7 @@ export class DashboardController {
     @Query('lowStockOnly') lowStockOnly?: string,
     @Query('limit') limit?: string,
   ): Promise<DashboardInventoryListResponseDto> {
-    return this.dashboardService.listInventory({
+    return this.listDashboardInventoryUseCase.execute({
       q,
       lowStockOnly: lowStockOnly === 'true',
       limit: this.parseNumber(limit, 100),
@@ -80,7 +110,7 @@ export class DashboardController {
     @Query('status') status?: string,
     @Query('limit') limit?: string,
   ): Promise<DashboardPaymentListResponseDto> {
-    return this.dashboardService.listPayments({
+    return this.listDashboardPaymentsUseCase.execute({
       q,
       status,
       limit: this.parseNumber(limit, 100),
@@ -94,7 +124,7 @@ export class DashboardController {
     @Query('status') status?: string,
     @Query('limit') limit?: string,
   ): Promise<DashboardShipmentListResponseDto> {
-    return this.dashboardService.listShipments({
+    return this.listDashboardShipmentsUseCase.execute({
       q,
       status,
       limit: this.parseNumber(limit, 100),
@@ -109,7 +139,7 @@ export class DashboardController {
     @Query('channel') channel?: string,
     @Query('limit') limit?: string,
   ): Promise<DashboardNotificationListResponseDto> {
-    return this.dashboardService.listNotifications({
+    return this.listDashboardNotificationsUseCase.execute({
       q,
       status,
       channel,
@@ -120,7 +150,7 @@ export class DashboardController {
   @Get('health')
   @ApiOperation({ summary: 'Get normalized dashboard infrastructure health' })
   async getHealth(): Promise<DashboardHealthResponseDto> {
-    return this.dashboardService.getHealth();
+    return this.getDashboardHealthUseCase.execute();
   }
 
   @Get('activity')
@@ -128,7 +158,9 @@ export class DashboardController {
   async getActivity(
     @Query('limit') limit?: string,
   ): Promise<DashboardActivityResponseDto> {
-    return this.dashboardService.listActivity(this.parseNumber(limit, 20));
+    return this.listDashboardActivityUseCase.execute({
+      limit: this.parseNumber(limit, 20),
+    });
   }
 
   private parseNumber(value: string | undefined, fallback: number): number {

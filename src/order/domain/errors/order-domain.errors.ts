@@ -29,3 +29,14 @@ export class InvalidOrderError extends DomainError {
     super(message);
   }
 }
+
+export class OrderWorkflowNotFoundError extends DomainError {
+  readonly code = ERROR_CODES.ORDER_WORKFLOW_NOT_FOUND;
+  readonly httpStatus = 409;
+
+  constructor(orderId: string) {
+    super(
+      `Order workflow not found for order ${orderId}. The workflow may have expired or the orchestration engine was restarted.`,
+    );
+  }
+}

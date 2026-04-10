@@ -14,6 +14,7 @@ import { IIdempotencyService, IDEMPOTENCY_SERVICE } from '@shared/infrastructure
 import { SendNotificationUseCase } from '@notification/application/use-cases/send-notification/send-notification.use-case';
 import { NOTIFICATION_USE_CASE_TOKENS } from '@notification/application/injection-tokens';
 import { SendNotificationDto } from '@notification/application/dtos/send-notification.dto';
+import { NotificationChannel, NotificationType } from '@notification/domain';
 
 /**
  * Consumes events from ALL service topics to trigger user notifications.
@@ -50,8 +51,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
             const orderId = value.aggregateId as string;
             await this.sendNotificationSafe({
               recipientId: orderId,
-              channel: 'EMAIL',
-              type: 'ORDER_CONFIRMED',
+              channel: NotificationChannel.EMAIL,
+              type: NotificationType.ORDER_CONFIRMED,
               subject: `Order ${orderId} Confirmed`,
               body: `Your order ${orderId} has been confirmed and is being prepared for shipment.`,
               metadata: { orderId },
@@ -82,8 +83,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
             const reason = value.reason as string;
             await this.sendNotificationSafe({
               recipientId: orderId,
-              channel: 'EMAIL',
-              type: 'PAYMENT_FAILED',
+              channel: NotificationChannel.EMAIL,
+              type: NotificationType.PAYMENT_FAILED,
               subject: `Payment Failed for Order ${orderId}`,
               body: `Your payment for order ${orderId} could not be processed. Reason: ${reason}. Please update your payment method.`,
               metadata: { orderId, reason },
@@ -98,8 +99,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
             const currency = value.currency as string;
             await this.sendNotificationSafe({
               recipientId: orderId,
-              channel: 'EMAIL',
-              type: 'PAYMENT_REFUNDED',
+              channel: NotificationChannel.EMAIL,
+              type: NotificationType.PAYMENT_REFUNDED,
               subject: `Refund Processed for Order ${orderId}`,
               body: `A refund of ${amount} ${currency} has been processed for your order ${orderId}.`,
               metadata: { orderId, amount, currency },
@@ -121,8 +122,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
             const orderId = value.orderId as string;
             await this.sendNotificationSafe({
               recipientId: orderId,
-              channel: 'EMAIL',
-              type: 'ORDER_SHIPPED',
+              channel: NotificationChannel.EMAIL,
+              type: NotificationType.ORDER_SHIPPED,
               subject: `Order ${orderId} Shipped`,
               body: `Your order ${orderId} has been shipped and is on its way.`,
               metadata: { orderId, shipmentId: value.shipmentId },
@@ -135,8 +136,8 @@ export class NotificationEventConsumer extends BaseEventConsumer {
             const orderId = value.orderId as string;
             await this.sendNotificationSafe({
               recipientId: orderId,
-              channel: 'EMAIL',
-              type: 'ORDER_DELIVERED',
+              channel: NotificationChannel.EMAIL,
+              type: NotificationType.ORDER_DELIVERED,
               subject: `Order ${orderId} Delivered`,
               body: `Your order ${orderId} has been delivered. Thank you for your purchase!`,
               metadata: { orderId, shipmentId: value.shipmentId },

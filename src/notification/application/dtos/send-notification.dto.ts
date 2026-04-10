@@ -1,12 +1,10 @@
+import { NotificationChannel } from '@notification/domain';
+import { NotificationType } from '@notification/domain';
+
 export interface SendNotificationDto {
   recipientId: string;
-  channel: 'EMAIL' | 'SMS' | 'PUSH';
-  type:
-    | 'ORDER_CONFIRMED'
-    | 'ORDER_SHIPPED'
-    | 'ORDER_DELIVERED'
-    | 'PAYMENT_FAILED'
-    | 'PAYMENT_REFUNDED';
+  channel: NotificationChannel;
+  type: NotificationType;
   subject: string;
   body: string;
   metadata?: Record<string, unknown>;

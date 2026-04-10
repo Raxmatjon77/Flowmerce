@@ -5,6 +5,7 @@ import {
 } from '@order/application/ports/payment-service.port';
 import { ProcessPaymentUseCase } from '@payment/application/use-cases/process-payment/process-payment.use-case';
 import { RefundPaymentUseCase } from '@payment/application/use-cases/refund-payment/refund-payment.use-case';
+import { PaymentStatusEnum } from '@payment/domain';
 
 @Injectable()
 export class PaymentServiceAdapter implements IPaymentServicePort {
@@ -31,7 +32,7 @@ export class PaymentServiceAdapter implements IPaymentServicePort {
       method,
     });
 
-    const isSuccess = response.status === 'COMPLETED';
+    const isSuccess = response.status === PaymentStatusEnum.COMPLETED;
 
     return {
       paymentId: response.id,

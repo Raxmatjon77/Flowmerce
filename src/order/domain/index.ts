@@ -23,4 +23,5 @@ export {
   InvalidOrderTransitionError,
   OrderNotFoundError,
   InvalidOrderError,
+  OrderWorkflowNotFoundError,
 } from './errors/order-domain.errors';

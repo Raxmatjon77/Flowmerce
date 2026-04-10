@@ -7,6 +7,7 @@ import {
   DashboardDependencyHealth,
   IDashboardHealthPort,
 } from '../../application/ports/dashboard-health.port';
+import { ServiceHealthStatus } from '../../application/enums/dashboard.enums';
 
 @Injectable()
 export class DashboardHealthAdapter implements IDashboardHealthPort {
@@ -38,7 +39,7 @@ export class DashboardHealthAdapter implements IDashboardHealthPort {
 
       return {
         name,
-        status: 'healthy',
+        status: ServiceHealthStatus.HEALTHY,
         responseTimeMs: this.parseResponseTime(detail?.responseTime),
         details: detail ? JSON.stringify(detail) : 'Healthy',
         checkedAt,
@@ -48,7 +49,7 @@ export class DashboardHealthAdapter implements IDashboardHealthPort {
 
       return {
         name,
-        status: name === 'Temporal' ? 'degraded' : 'down',
+        status: name === 'Temporal' ? ServiceHealthStatus.DEGRADED : ServiceHealthStatus.DOWN,
         responseTimeMs: this.parseResponseTime(detail.responseTime),
         details: detail.message,
         checkedAt,

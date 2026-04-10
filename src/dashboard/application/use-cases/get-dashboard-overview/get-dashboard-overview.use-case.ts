@@ -11,6 +11,10 @@ import {
   toInventoryAlertDto,
   toRecentOrderDto,
 } from '../dashboard-view.mapper';
+import { ServiceHealthStatus } from '../../enums/dashboard.enums';
+import { OrderStatusEnum } from '@order/domain';
+import { PaymentStatusEnum } from '@payment/domain';
+import { NotificationStatus } from '@notification/domain';
 
 export interface GetDashboardOverviewInput {
   limit: number;
@@ -41,10 +45,10 @@ export class GetDashboardOverviewUseCase
     const health = toDashboardHealthResponse(services);
     const todayKey = new Date().toISOString().slice(0, 10);
     const activeOrders = orders.filter(
-      (order) => !['SHIPPED', 'CANCELLED'].includes(order.status),
+      (order) => ![OrderStatusEnum.SHIPPED, OrderStatusEnum.CANCELLED].includes(order.status as OrderStatusEnum),
     ).length;
     const unhealthyServices = health.services.filter(
-      (service) => service.status !== 'healthy',
+      (service) => service.status !== ServiceHealthStatus.HEALTHY,
     ).length;
     const recentOrders = orders
       .slice()
@@ -60,7 +64,7 @@ export class GetDashboardOverviewUseCase
         ).length,
         activeOrders,
         totalRevenue: payments
-          .filter((payment) => payment.status === 'COMPLETED')
+          .filter((payment) => payment.status === PaymentStatusEnum.COMPLETED)
           .reduce((sum, payment) => sum + Number(payment.amount), 0),
         totalInventoryUnits: inventoryItems.reduce(
           (sum, item) => sum + Number(item.total_quantity),
@@ -70,7 +74,7 @@ export class GetDashboardOverviewUseCase
           isLowStock(item.total_quantity, item.reserved_quantity),
         ).length,
         pendingNotifications: notifications.filter(
-          (notification) => notification.status === 'PENDING',
+          (notification) => notification.status === NotificationStatus.PENDING,
         ).length,
         unhealthyServices,
       },

@@ -1,3 +1,5 @@
+import { ActivityFeedType, ServiceHealthStatus, StockState } from '../enums/dashboard.enums';
+
 export class DashboardSummaryDto {
   totalOrders: number;
   ordersToday: number;
@@ -41,7 +43,7 @@ export class DashboardRecentOrderDto {
 }
 
 export class DashboardActivityDto {
-  type: string;
+  type: ActivityFeedType;
   entityId: string;
   title: string;
   description: string;
@@ -51,14 +53,14 @@ export class DashboardActivityDto {
 
 export class DashboardHealthServiceDto {
   name: string;
-  status: 'healthy' | 'degraded' | 'down';
+  status: ServiceHealthStatus;
   responseTimeMs: number | null;
   details: string;
   checkedAt: Date;
 }
 
 export class DashboardHealthResponseDto {
-  overallStatus: 'healthy' | 'degraded' | 'down';
+  overallStatus: ServiceHealthStatus;
   services: DashboardHealthServiceDto[];
   generatedAt: Date;
 }
@@ -152,7 +154,7 @@ export class DashboardInventoryListItemDto {
   reservedQuantity: number;
   availableQuantity: number;
   lowStockThreshold: number;
-  stockState: 'healthy' | 'low' | 'critical';
+  stockState: StockState;
 }
 
 export class DashboardInventoryListResponseDto {

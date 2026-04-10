@@ -14,6 +14,8 @@ import {
 import {
   DashboardDependencyHealth,
 } from '../ports/dashboard-health.port';
+import { ActivityFeedType, ServiceHealthStatus, StockState } from '../enums/dashboard.enums';
+import { PaymentStatusEnum } from '@payment/domain';
 import {
   DashboardInventoryRecord,
   DashboardNotificationRecord,
@@ -26,11 +28,11 @@ import {
 export function toDashboardHealthResponse(
   services: DashboardDependencyHealth[],
 ): DashboardHealthResponseDto {
-  const overallStatus = services.some((service) => service.status === 'down')
-    ? 'down'
-    : services.some((service) => service.status === 'degraded')
-      ? 'degraded'
-      : 'healthy';
+  const overallStatus = services.some((service) => service.status === ServiceHealthStatus.DOWN)
+    ? ServiceHealthStatus.DOWN
+    : services.some((service) => service.status === ServiceHealthStatus.DEGRADED)
+      ? ServiceHealthStatus.DEGRADED
+      : ServiceHealthStatus.HEALTHY;
 
   return {
     overallStatus,
@@ -76,7 +78,7 @@ export function buildOrderTrend(
     const revenue = payments
       .filter(
         (payment) =>
-          payment.status === 'COMPLETED' &&
+          payment.status === PaymentStatusEnum.COMPLETED &&
           orderIds.has(payment.order_id) &&
           payment.created_at.toISOString().startsWith(key),
       )
@@ -101,7 +103,7 @@ export function buildActivityFeed(params: {
 }): DashboardActivityDto[] {
   const activities: DashboardActivityDto[] = [
     ...params.orders.map((order) => ({
-      type: 'order',
+      type: ActivityFeedType.ORDER,
       entityId: order.id,
       title: `Order ${order.id}`,
       description: `Customer ${order.customer_id} is currently ${order.status}`,
@@ -109,7 +111,7 @@ export function buildActivityFeed(params: {
       timestamp: order.created_at,
     })),
     ...params.payments.map((payment) => ({
-      type: 'payment',
+      type: ActivityFeedType.PAYMENT,
       entityId: payment.id,
       title: `Payment ${payment.id}`,
       description: `Order ${payment.order_id} payment is ${payment.status}`,
@@ -117,7 +119,7 @@ export function buildActivityFeed(params: {
       timestamp: payment.created_at,
     })),
     ...params.shipments.map((shipment) => ({
-      type: 'shipment',
+      type: ActivityFeedType.SHIPMENT,
       entityId: shipment.id,
       title: `Shipment ${shipment.id}`,
       description: `Order ${shipment.order_id} shipment is ${shipment.status}`,
@@ -125,7 +127,7 @@ export function buildActivityFeed(params: {
       timestamp: shipment.created_at,
     })),
     ...params.notifications.map((notification) => ({
-      type: 'notification',
+      type: ActivityFeedType.NOTIFICATION,
       entityId: notification.id,
       title: `Notification ${notification.id}`,
       description: `${notification.type} for ${notification.recipient_id}`,
@@ -189,10 +191,10 @@ export function toInventoryListItemDto(
     lowStockThreshold: threshold,
     stockState:
       availableQuantity <= Math.max(5, Math.floor(threshold / 2))
-        ? 'critical'
+        ? StockState.CRITICAL
         : availableQuantity <= threshold
-          ? 'low'
-          : 'healthy',
+          ? StockState.LOW
+          : StockState.HEALTHY,
   };
 }
 

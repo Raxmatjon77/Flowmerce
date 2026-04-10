@@ -6,6 +6,7 @@ import {
   IOrderWorkflowOrchestrator,
   StartOrderWorkflowInput,
 } from '@order/application/ports/workflow-orchestrator.port';
+import { OrderWorkflowNotFoundError } from '@order/domain';
 import {
   orderProcessingWorkflow,
   confirmOrderSignal,
@@ -53,7 +54,7 @@ export class OrderWorkflowOrchestrator implements IOrderWorkflowOrchestrator {
     } catch (error) {
       if (error instanceof WorkflowNotFoundError) {
         this.logger.warn(`Workflow not found: ${workflowId}`);
-        throw new Error(`Order workflow not found for order ${orderId}`);
+        throw new OrderWorkflowNotFoundError(orderId);
       }
       throw error;
     }

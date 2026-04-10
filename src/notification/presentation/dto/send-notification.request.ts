@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsObject,
 } from 'class-validator';
+import { NotificationChannel, NotificationType } from '@notification/domain';
 
 export class SendNotificationRequest {
   @IsString()
@@ -13,24 +14,13 @@ export class SendNotificationRequest {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(['EMAIL', 'SMS', 'PUSH'])
-  channel!: 'EMAIL' | 'SMS' | 'PUSH';
+  @IsIn(Object.values(NotificationChannel))
+  channel!: NotificationChannel;
 
   @IsString()
   @IsNotEmpty()
-  @IsIn([
-    'ORDER_CONFIRMED',
-    'ORDER_SHIPPED',
-    'ORDER_DELIVERED',
-    'PAYMENT_FAILED',
-    'PAYMENT_REFUNDED',
-  ])
-  type!:
-    | 'ORDER_CONFIRMED'
-    | 'ORDER_SHIPPED'
-    | 'ORDER_DELIVERED'
-    | 'PAYMENT_FAILED'
-    | 'PAYMENT_REFUNDED';
+  @IsIn(Object.values(NotificationType))
+  type!: NotificationType;
 
   @IsString()
   @IsNotEmpty()

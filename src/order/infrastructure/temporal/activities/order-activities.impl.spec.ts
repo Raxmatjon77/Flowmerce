@@ -72,6 +72,7 @@ describe('OrderActivitiesImpl', () => {
 
     orderRepository = {
       save: jest.fn().mockResolvedValue(undefined),
+      findAll: jest.fn(),
       findById: jest.fn(),
       findByCustomerId: jest.fn(),
       updateStatus: jest.fn().mockResolvedValue(undefined),

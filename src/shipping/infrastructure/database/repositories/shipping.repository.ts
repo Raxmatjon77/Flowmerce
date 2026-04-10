@@ -43,6 +43,16 @@ export class KyselyShipmentRepository implements IShipmentRepository {
       .execute();
   }
 
+  async findAll(): Promise<Shipment[]> {
+    const rows = await this.db
+      .selectFrom('shipments')
+      .selectAll()
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    return rows.map(ShipmentMapper.toDomain);
+  }
+
   async findById(id: string): Promise<Shipment | null> {
     const row = await this.db
       .selectFrom('shipments')

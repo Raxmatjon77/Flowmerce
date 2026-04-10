@@ -65,6 +65,37 @@ export class KyselyOrderRepository implements IOrderRepository {
     });
   }
 
+  async findAll(): Promise<Order[]> {
+    const orderRows = await this.db
+      .selectFrom('orders')
+      .selectAll()
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    if (orderRows.length === 0) {
+      return [];
+    }
+
+    const itemRows = await this.db
+      .selectFrom('order_items')
+      .selectAll()
+      .execute();
+
+    const itemsByOrderId = new Map<string, typeof itemRows>();
+    for (const item of itemRows) {
+      const existing = itemsByOrderId.get(item.order_id) ?? [];
+      existing.push(item);
+      itemsByOrderId.set(item.order_id, existing);
+    }
+
+    return orderRows.map((orderRow) =>
+      OrderMapper.toDomain(
+        orderRow as OrderRow,
+        (itemsByOrderId.get(orderRow.id) ?? []) as OrderItemRow[],
+      ),
+    );
+  }
+
   async findById(id: string): Promise<Order | null> {
     const orderRow = await this.db
       .selectFrom('orders')

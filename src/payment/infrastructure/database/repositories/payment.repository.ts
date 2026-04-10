@@ -50,6 +50,16 @@ export class KyselyPaymentRepository implements IPaymentRepository {
     });
   }
 
+  async findAll(): Promise<Payment[]> {
+    const rows = await this.db
+      .selectFrom('payments')
+      .selectAll()
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    return rows.map((row) => PaymentMapper.toDomain(row as PaymentRow));
+  }
+
   async findById(id: string): Promise<Payment | null> {
     const row = await this.db
       .selectFrom('payments')

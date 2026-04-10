@@ -4,6 +4,7 @@ export const PAYMENT_REPOSITORY = Symbol('PAYMENT_REPOSITORY');
 
 export interface IPaymentRepository {
   save(payment: Payment): Promise<void>;
+  findAll(): Promise<Payment[]>;
   findById(id: string): Promise<Payment | null>;
   findByOrderId(orderId: string): Promise<Payment | null>;
 }

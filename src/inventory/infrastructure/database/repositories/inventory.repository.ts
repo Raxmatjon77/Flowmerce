@@ -37,6 +37,16 @@ export class KyselyInventoryRepository implements IInventoryRepository {
       .execute();
   }
 
+  async findAll(): Promise<InventoryItem[]> {
+    const rows = await this.db
+      .selectFrom('inventory_items')
+      .selectAll()
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    return rows.map(InventoryItemMapper.toDomain);
+  }
+
   async findById(id: string): Promise<InventoryItem | null> {
     const row = await this.db
       .selectFrom('inventory_items')

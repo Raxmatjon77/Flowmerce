@@ -6,6 +6,7 @@ export const INVENTORY_REPOSITORY = Symbol('INVENTORY_REPOSITORY');
 
 export interface IInventoryRepository {
   save(item: InventoryItem): Promise<void>;
+  findAll(): Promise<InventoryItem[]>;
   findById(id: string): Promise<InventoryItem | null>;
   findBySku(sku: Sku): Promise<InventoryItem | null>;
   updateQuantities(

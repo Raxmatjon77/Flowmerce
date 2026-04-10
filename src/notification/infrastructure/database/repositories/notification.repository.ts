@@ -36,6 +36,16 @@ export class KyselyNotificationRepository implements INotificationRepository {
       .execute();
   }
 
+  async findAll(): Promise<Notification[]> {
+    const rows = await this.db
+      .selectFrom('notifications')
+      .selectAll()
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    return rows.map(NotificationMapper.toDomain);
+  }
+
   async findById(id: string): Promise<Notification | null> {
     const row = await this.db
       .selectFrom('notifications')

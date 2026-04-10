@@ -15,6 +15,7 @@ describe('GetOrderUseCase', () => {
   beforeEach(() => {
     mockOrderRepository = {
       save: jest.fn(),
+      findAll: jest.fn(),
       findById: jest.fn(),
       findByCustomerId: jest.fn(),
       updateStatus: jest.fn(),

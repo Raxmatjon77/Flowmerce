@@ -57,6 +57,7 @@ describe('CreateOrderUseCase', () => {
 
     mockOrderRepository = {
       save: jest.fn().mockResolvedValue(undefined),
+      findAll: jest.fn(),
       findById: jest.fn(),
       findByCustomerId: jest.fn(),
       updateStatus: jest.fn(),

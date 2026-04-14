@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { DomainExceptionFilter } from '@shared/presentation/filters/domain-exception.filter';
 import { LoggingInterceptor } from '@shared/presentation/interceptors/logging.interceptor';
@@ -47,10 +48,29 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new DomainExceptionFilter());
   app.useGlobalInterceptors(new LoggingInterceptor());
 
+  const config = new DocumentBuilder()
+    .setTitle('Flowmerce API')
+    .setDescription('Distributed Order & Fulfillment Platform API')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('auth', 'Authentication endpoints')
+    .addTag('orders', 'Order management')
+    .addTag('payments', 'Payment processing')
+    .addTag('inventory', 'Inventory management')
+    .addTag('shipping', 'Shipping & fulfillment')
+    .addTag('notifications', 'Notification services')
+    .addTag('dashboard', 'Dashboard analytics')
+    .addTag('health', 'Health check endpoints')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
   const port = parseInt(process.env.PORT || '3000', 10);
   await app.listen(port);
 
   logger.log(`Distributed Order Platform running on port ${port}`);
+  logger.log(`Swagger UI available at http://localhost:${port}/api/docs`);
 }
 
 bootstrap();

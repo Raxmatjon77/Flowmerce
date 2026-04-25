@@ -3,4 +3,5 @@ export const INVENTORY_USE_CASE_TOKENS = {
   RELEASE: 'ReleaseInventoryUseCase',
   DEDUCT: 'DeductInventoryUseCase',
   GET: 'GetInventoryUseCase',
+  LIST: 'ListInventoryUseCase',
 } as const;

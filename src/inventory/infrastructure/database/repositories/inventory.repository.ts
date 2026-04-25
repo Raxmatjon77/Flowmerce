@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import {
   IInventoryRepository,
+  InventoryFindAllParams,
   InventoryItem,
   Sku,
   Quantity,
@@ -31,6 +32,7 @@ export class KyselyInventoryRepository implements IInventoryRepository {
           product_name: record.product_name,
           total_quantity: record.total_quantity,
           reserved_quantity: record.reserved_quantity,
+          unit_price: record.unit_price,
           updated_at: new Date(),
         }),
       )
@@ -45,6 +47,33 @@ export class KyselyInventoryRepository implements IInventoryRepository {
       .execute();
 
     return rows.map(InventoryItemMapper.toDomain);
+  }
+
+  async findAllPaginated(
+    params: InventoryFindAllParams,
+  ): Promise<{ items: InventoryItem[]; total: number }> {
+    const limit = params.limit ?? 20;
+    const page = params.page ?? 1;
+    const offset = (page - 1) * limit;
+
+    const [rows, countRow] = await Promise.all([
+      this.db
+        .selectFrom('inventory_items')
+        .selectAll()
+        .orderBy('created_at', 'desc')
+        .limit(limit)
+        .offset(offset)
+        .execute(),
+      this.db
+        .selectFrom('inventory_items')
+        .select((eb) => eb.fn.countAll<number>().as('count'))
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    return {
+      items: rows.map(InventoryItemMapper.toDomain),
+      total: Number(countRow.count),
+    };
   }
 
   async findById(id: string): Promise<InventoryItem | null> {

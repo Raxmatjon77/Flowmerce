@@ -1,10 +1,14 @@
+import { ForbiddenException } from '@nestjs/common';
 import { IUseCase } from '@shared/application';
 import { IEventPublisher } from '@shared/application';
 import { IOrderRepository, OrderNotFoundError } from '@order/domain';
 import { IOrderWorkflowOrchestrator } from '../../ports/workflow-orchestrator.port';
+import { Role } from '../../../../shared/infrastructure/auth/auth.constants';
 
 export interface CancelOrderInput {
   orderId: string;
+  requesterId?: string;
+  requesterRole?: Role;
 }
 
 export interface CancelOrderOutput {
@@ -25,6 +29,14 @@ export class CancelOrderUseCase
 
     if (!order) {
       throw new OrderNotFoundError(input.orderId);
+    }
+
+    if (
+      input.requesterRole === Role.CUSTOMER &&
+      input.requesterId !== undefined &&
+      order.customerId !== input.requesterId
+    ) {
+      throw new ForbiddenException('You can only cancel your own orders');
     }
 
     // Cancel the workflow first (if running)

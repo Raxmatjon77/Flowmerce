@@ -17,6 +17,7 @@ export { InventoryDeductedEvent } from './events/inventory-deducted.event';
 export {
   INVENTORY_REPOSITORY,
   type IInventoryRepository,
+  type InventoryFindAllParams,
 } from './repositories/inventory.repository.interface';
 
 // Errors

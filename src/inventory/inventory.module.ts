@@ -13,6 +13,7 @@ import { ReserveInventoryUseCase } from './application/use-cases/reserve-invento
 import { ReleaseInventoryUseCase } from './application/use-cases/release-inventory/release-inventory.use-case';
 import { DeductInventoryUseCase } from './application/use-cases/deduct-inventory/deduct-inventory.use-case';
 import { GetInventoryUseCase } from './application/use-cases/get-inventory/get-inventory.use-case';
+import { ListInventoryUseCase } from './application/use-cases/list-inventory/list-inventory.use-case';
 import { INVENTORY_USE_CASE_TOKENS } from './application/injection-tokens';
 import { InventoryEventConsumer } from './infrastructure/kafka/inventory-event-consumer';
 import { InventoryController } from './presentation/controllers/inventory.controller';
@@ -69,6 +70,12 @@ import { InventoryOutboxPollerService } from './infrastructure/kafka/inventory-o
         new GetInventoryUseCase(inventoryRepository),
       inject: [INVENTORY_REPOSITORY],
     },
+    {
+      provide: INVENTORY_USE_CASE_TOKENS.LIST,
+      useFactory: (inventoryRepository: IInventoryRepository) =>
+        new ListInventoryUseCase(inventoryRepository),
+      inject: [INVENTORY_REPOSITORY],
+    },
 
     // Re-export use case classes for adapter injection
     {
@@ -92,6 +99,7 @@ import { InventoryOutboxPollerService } from './infrastructure/kafka/inventory-o
     INVENTORY_USE_CASE_TOKENS.RELEASE,
     INVENTORY_USE_CASE_TOKENS.DEDUCT,
     INVENTORY_USE_CASE_TOKENS.GET,
+    INVENTORY_USE_CASE_TOKENS.LIST,
     ReserveInventoryUseCase,
     ReleaseInventoryUseCase,
   ],

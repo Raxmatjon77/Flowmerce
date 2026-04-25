@@ -7,6 +7,7 @@ export interface InventoryItemTable {
   product_name: string;
   total_quantity: number;
   reserved_quantity: number;
+  unit_price: number;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

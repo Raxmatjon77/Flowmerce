@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { v4 as uuidv4 } from 'uuid';
-import { Order, IOrderRepository, OrderStatus } from '@order/domain';
+import { Order, IOrderRepository, OrderStatus, OrderFindAllFilter } from '@order/domain';
 import { KAFKA_TOPICS } from '@shared/infrastructure/kafka';
 import { OrderDatabase } from '../tables/order.table';
 import { OrderMapper, OrderRow, OrderItemRow } from '../mappers/order.mapper';
@@ -63,6 +63,61 @@ export class KyselyOrderRepository implements IOrderRepository {
         await trx.insertInto('outbox_events').values(outboxRows).execute();
       }
     });
+  }
+
+  async findAllPaginated(
+    filter: OrderFindAllFilter,
+  ): Promise<{ orders: Order[]; total: number }> {
+    const limit = filter.limit ?? 20;
+    const page = filter.page ?? 1;
+    const offset = (page - 1) * limit;
+
+    let query = this.db.selectFrom('orders').selectAll();
+    let countQuery = this.db
+      .selectFrom('orders')
+      .select((eb) => eb.fn.countAll<number>().as('count'));
+
+    if (filter.customerId) {
+      query = query.where('customer_id', '=', filter.customerId);
+      countQuery = countQuery.where('customer_id', '=', filter.customerId);
+    }
+
+    if (filter.status) {
+      query = query.where('status', '=', filter.status);
+      countQuery = countQuery.where('status', '=', filter.status);
+    }
+
+    const [orderRows, countRow] = await Promise.all([
+      query.orderBy('created_at', 'desc').limit(limit).offset(offset).execute(),
+      countQuery.executeTakeFirstOrThrow(),
+    ]);
+
+    if (orderRows.length === 0) {
+      return { orders: [], total: Number(countRow.count) };
+    }
+
+    const orderIds = orderRows.map((r) => r.id);
+    const itemRows = await this.db
+      .selectFrom('order_items')
+      .selectAll()
+      .where('order_id', 'in', orderIds)
+      .execute();
+
+    const itemsByOrderId = new Map<string, typeof itemRows>();
+    for (const item of itemRows) {
+      const existing = itemsByOrderId.get(item.order_id) ?? [];
+      existing.push(item);
+      itemsByOrderId.set(item.order_id, existing);
+    }
+
+    const orders = orderRows.map((orderRow) =>
+      OrderMapper.toDomain(
+        orderRow as OrderRow,
+        (itemsByOrderId.get(orderRow.id) ?? []) as OrderItemRow[],
+      ),
+    );
+
+    return { orders, total: Number(countRow.count) };
   }
 
   async findAll(): Promise<Order[]> {

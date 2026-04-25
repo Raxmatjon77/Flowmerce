@@ -7,6 +7,7 @@ import * as paymentMigration from '../src/payment/infrastructure/database/migrat
 import * as inventoryMigration from '../src/inventory/infrastructure/database/migrations/001_create_inventory';
 import * as shippingMigration from '../src/shipping/infrastructure/database/migrations/001_create_shipping';
 import * as notificationMigration from '../src/notification/infrastructure/database/migrations/001_create_notification';
+import * as customerMigration from '../src/customer/infrastructure/database/migrations/001_create_customers';
 
 interface DbConfig {
   host: string;
@@ -66,6 +67,16 @@ const databases: Record<string, { config: DbConfig; migration: { up: (db: Kysely
       database: process.env.NOTIFICATION_DB_NAME || 'notification_db',
     },
     migration: notificationMigration,
+  },
+  customer: {
+    config: {
+      host: process.env.CUSTOMER_DB_HOST || 'localhost',
+      port: parseInt(process.env.CUSTOMER_DB_PORT || '5438'),
+      user: process.env.CUSTOMER_DB_USER || 'customer_user',
+      password: process.env.CUSTOMER_DB_PASSWORD || 'customer_pass',
+      database: process.env.CUSTOMER_DB_NAME || 'customer_db',
+    },
+    migration: customerMigration,
   },
 };
 

@@ -32,6 +32,7 @@ export class GetInventoryUseCase
       totalQuantity: inventoryItem.totalQuantity.value,
       reservedQuantity: inventoryItem.reservedQuantity.value,
       availableQuantity: inventoryItem.availableQuantity.value,
+      unitPrice: inventoryItem.unitPrice,
     };
   }
 }

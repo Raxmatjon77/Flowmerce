@@ -57,6 +57,17 @@ services:
     volumes:
       - notification_data:/var/lib/postgresql/data
 
+  customer-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: customer_user
+      POSTGRES_PASSWORD: customer_pass
+      POSTGRES_DB: customer_db
+    ports:
+      - '5438:5432'
+    volumes:
+      - customer_data:/var/lib/postgresql/data
+
   # ─── Kafka: already running externally on localhost:9092 ──
 
   # ─── Temporal ────────────────────────────────────────────
@@ -129,3 +140,4 @@ volumes:
   shipping_data:
   notification_data:
   temporal_data:
+  customer_data:

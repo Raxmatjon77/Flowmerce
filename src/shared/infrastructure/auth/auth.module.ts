@@ -6,6 +6,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
 import { AuthController } from './auth.controller';
+import { CustomerModule } from '../../../customer/infrastructure/customer.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthController } from './auth.controller';
         expiresIn: (process.env.JWT_EXPIRATION || '24h') as any,
       },
     }),
+    CustomerModule,
   ],
   controllers: [AuthController],
   providers: [

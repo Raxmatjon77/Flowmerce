@@ -14,6 +14,7 @@ export class InventoryItemMapper {
       productName: row.product_name,
       totalQuantity: Quantity.create(row.total_quantity),
       reservedQuantity: Quantity.create(row.reserved_quantity),
+      unitPrice: row.unit_price,
     });
   }
 
@@ -26,6 +27,7 @@ export class InventoryItemMapper {
       product_name: entity.productName,
       total_quantity: entity.totalQuantity.value,
       reserved_quantity: entity.reservedQuantity.value,
+      unit_price: entity.unitPrice,
     };
   }
 }

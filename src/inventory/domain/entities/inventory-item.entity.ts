@@ -11,6 +11,7 @@ export interface InventoryItemProps {
   productName: string;
   totalQuantity: Quantity;
   reservedQuantity: Quantity;
+  unitPrice: number;
 }
 
 export class InventoryItem extends AggregateRoot {
@@ -18,6 +19,7 @@ export class InventoryItem extends AggregateRoot {
   private _productName: string;
   private _totalQuantity: Quantity;
   private _reservedQuantity: Quantity;
+  private _unitPrice: number;
 
   private constructor(id: string, props: InventoryItemProps) {
     super(id);
@@ -25,6 +27,7 @@ export class InventoryItem extends AggregateRoot {
     this._productName = props.productName;
     this._totalQuantity = props.totalQuantity;
     this._reservedQuantity = props.reservedQuantity;
+    this._unitPrice = props.unitPrice;
   }
 
   static create(
@@ -32,12 +35,14 @@ export class InventoryItem extends AggregateRoot {
     sku: Sku,
     productName: string,
     totalQuantity: Quantity,
+    unitPrice: number,
   ): InventoryItem {
     return new InventoryItem(id, {
       sku,
       productName,
       totalQuantity,
       reservedQuantity: Quantity.create(0),
+      unitPrice,
     });
   }
 
@@ -59,6 +64,10 @@ export class InventoryItem extends AggregateRoot {
 
   get reservedQuantity(): Quantity {
     return this._reservedQuantity;
+  }
+
+  get unitPrice(): number {
+    return this._unitPrice;
   }
 
   get availableQuantity(): Quantity {

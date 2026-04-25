@@ -5,4 +5,5 @@ export class InventoryResponseDto {
   totalQuantity: number;
   reservedQuantity: number;
   availableQuantity: number;
+  unitPrice: number;
 }

@@ -16,7 +16,11 @@ export { OrderCancelledEvent } from './events/order-cancelled.event';
 export { OrderShippedEvent } from './events/order-shipped.event';
 
 // Repository Interface
-export { IOrderRepository, ORDER_REPOSITORY } from './repositories/order.repository.interface';
+export {
+  IOrderRepository,
+  ORDER_REPOSITORY,
+  type OrderFindAllFilter,
+} from './repositories/order.repository.interface';
 
 // Errors
 export {

@@ -8,6 +8,8 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { Roles, Role } from '@shared/infrastructure/auth';
@@ -60,7 +62,17 @@ export class NotificationController {
   @ApiResponse({ status: 200, description: 'Notifications retrieved', type: [NotificationResponseDto] })
   async getNotifications(
     @Query('recipientId') recipientId: string,
+    @Req() req: any,
   ): Promise<NotificationResponseDto[]> {
+    const callerRole: Role = req.user.role;
+    const callerId: string = req.user.sub;
+
+    if (callerRole === Role.CUSTOMER && recipientId !== callerId) {
+      throw new ForbiddenException(
+        'Customers can only view their own notifications',
+      );
+    }
+
     this.logger.log(`Getting notifications for recipient ${recipientId}`);
     return this.getNotificationsUseCase.execute({ recipientId });
   }

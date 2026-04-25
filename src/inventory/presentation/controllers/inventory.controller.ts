@@ -4,16 +4,18 @@ import {
   Get,
   Param,
   Body,
+  Query,
   Inject,
   HttpCode,
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { Roles, Role, Public } from '@shared/infrastructure/auth';
 import { GetInventoryUseCase } from '@inventory/application/use-cases/get-inventory/get-inventory.use-case';
 import { ReserveInventoryUseCase } from '@inventory/application/use-cases/reserve-inventory/reserve-inventory.use-case';
 import { ReleaseInventoryUseCase } from '@inventory/application/use-cases/release-inventory/release-inventory.use-case';
+import { ListInventoryUseCase, ListInventoryOutput } from '@inventory/application/use-cases/list-inventory/list-inventory.use-case';
 import { INVENTORY_USE_CASE_TOKENS } from '@inventory/application/injection-tokens';
 import { InventoryResponseDto } from '@inventory/application/dtos/inventory-response.dto';
 import { ReserveInventoryRequest } from '../dto/reserve-inventory.request';
@@ -32,19 +34,26 @@ export class InventoryController {
     private readonly reserveInventoryUseCase: ReserveInventoryUseCase,
     @Inject(INVENTORY_USE_CASE_TOKENS.RELEASE)
     private readonly releaseInventoryUseCase: ReleaseInventoryUseCase,
+    @Inject(INVENTORY_USE_CASE_TOKENS.LIST)
+    private readonly listInventoryUseCase: ListInventoryUseCase,
   ) {}
 
-  @Get(':id')
-  @Public()
+  @Get()
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get inventory item by ID' })
-  @ApiParam({ name: 'id', description: 'Inventory item ID' })
-  @ApiResponse({ status: 200, description: 'Inventory item retrieved', type: InventoryResponseDto })
-  async getInventoryById(
-    @Param('id') id: string,
-  ): Promise<InventoryResponseDto> {
-    this.logger.log(`Getting inventory item ${id}`);
-    return this.getInventoryUseCase.execute({ sku: id });
+  @ApiOperation({ summary: 'List all inventory items (paginated)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Page size' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiResponse({ status: 200, description: 'Inventory items list returned' })
+  async listInventory(
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+  ): Promise<ListInventoryOutput> {
+    this.logger.log('Listing inventory items');
+    return this.listInventoryUseCase.execute({
+      limit: limit ? parseInt(limit, 10) : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+    });
   }
 
   @Get('sku/:sku')
@@ -58,6 +67,19 @@ export class InventoryController {
   ): Promise<InventoryResponseDto> {
     this.logger.log(`Getting inventory item by SKU ${sku}`);
     return this.getInventoryUseCase.execute({ sku });
+  }
+
+  @Get(':id')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get inventory item by ID' })
+  @ApiParam({ name: 'id', description: 'Inventory item ID' })
+  @ApiResponse({ status: 200, description: 'Inventory item retrieved', type: InventoryResponseDto })
+  async getInventoryById(
+    @Param('id') id: string,
+  ): Promise<InventoryResponseDto> {
+    this.logger.log(`Getting inventory item ${id}`);
+    return this.getInventoryUseCase.execute({ sku: id });
   }
 
   @Post('reserve')

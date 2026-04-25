@@ -4,6 +4,8 @@ import {
   Get,
   Param,
   Body,
+  Query,
+  Req,
   Inject,
   HttpCode,
   HttpStatus,
@@ -11,13 +13,14 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { Roles, Role } from '@shared/infrastructure/auth';
 import { Idempotent, IdempotencyGuard, IdempotencyInterceptor } from '@shared/infrastructure/idempotency';
 import { CreateOrderUseCase } from '@order/application/use-cases/create-order/create-order.use-case';
 import { GetOrderUseCase } from '@order/application/use-cases/get-order/get-order.use-case';
 import { ConfirmOrderUseCase } from '@order/application/use-cases/confirm-order/confirm-order.use-case';
 import { CancelOrderUseCase } from '@order/application/use-cases/cancel-order/cancel-order.use-case';
+import { ListOrdersUseCase, ListOrdersOutput } from '@order/application/use-cases/list-orders/list-orders.use-case';
 import { ORDER_USE_CASE_TOKENS } from '@order/application/injection-tokens';
 import { OrderResponseDto } from '@order/application/dtos/order-response.dto';
 import { CreateOrderRequest } from '../dto/create-order.request';
@@ -37,7 +40,37 @@ export class OrderController {
     private readonly confirmOrderUseCase: ConfirmOrderUseCase,
     @Inject(ORDER_USE_CASE_TOKENS.CANCEL)
     private readonly cancelOrderUseCase: CancelOrderUseCase,
+    @Inject(ORDER_USE_CASE_TOKENS.LIST)
+    private readonly listOrdersUseCase: ListOrdersUseCase,
   ) {}
+
+  @Get()
+  @Roles(Role.CUSTOMER, Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'List orders (customers see only their own)' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filter by status' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Page size' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiResponse({ status: 200, description: 'Orders list returned' })
+  async listOrders(
+    @Query('status') status?: string,
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+    @Req() req?: any,
+  ): Promise<ListOrdersOutput> {
+    const callerId: string = req.user.sub;
+    const callerRole: Role = req.user.role;
+
+    this.logger.log(`Listing orders for caller ${callerId} with role ${callerRole}`);
+
+    return this.listOrdersUseCase.execute({
+      status,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      callerRole,
+      callerId,
+    });
+  }
 
   @Post()
   @Roles(Role.CUSTOMER, Role.ADMIN)
@@ -84,13 +117,21 @@ export class OrderController {
   }
 
   @Post(':id/cancel')
-  @Roles(Role.ADMIN)
+  @Roles(Role.CUSTOMER, Role.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancel an order' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order cancelled' })
-  async cancelOrder(@Param('id') id: string): Promise<{ message: string }> {
+  @ApiResponse({ status: 403, description: 'Forbidden: customers can only cancel their own orders' })
+  async cancelOrder(
+    @Param('id') id: string,
+    @Req() req: any,
+  ): Promise<{ message: string }> {
     this.logger.log(`Cancelling order ${id}`);
-    return this.cancelOrderUseCase.execute({ orderId: id });
+    return this.cancelOrderUseCase.execute({
+      orderId: id,
+      requesterId: req.user.sub,
+      requesterRole: req.user.role,
+    });
   }
 }

@@ -35,6 +35,7 @@ import { GetOrderUseCase } from './application/use-cases/get-order/get-order.use
 import { ConfirmOrderUseCase } from './application/use-cases/confirm-order/confirm-order.use-case';
 import { CancelOrderUseCase } from './application/use-cases/cancel-order/cancel-order.use-case';
 import { UpdateOrderStatusUseCase } from './application/use-cases/update-order-status/update-order-status.use-case';
+import { ListOrdersUseCase } from './application/use-cases/list-orders/list-orders.use-case';
 import { ORDER_USE_CASE_TOKENS } from './application/injection-tokens';
 import { OrderController } from './presentation/controllers/order.controller';
 import { OrderEventConsumer } from './infrastructure/kafka/order-event-consumer';
@@ -121,6 +122,14 @@ import { NotificationModule } from '@notification/notification.module';
       inject: [ORDER_REPOSITORY, EVENT_PUBLISHER],
     },
 
+    // List orders use case
+    {
+      provide: ORDER_USE_CASE_TOKENS.LIST,
+      useFactory: (orderRepository: IOrderRepository) =>
+        new ListOrdersUseCase(orderRepository),
+      inject: [ORDER_REPOSITORY],
+    },
+
     // Temporal activities
     OrderActivitiesImpl,
 
@@ -137,6 +146,7 @@ import { NotificationModule } from '@notification/notification.module';
     ORDER_USE_CASE_TOKENS.GET,
     ORDER_USE_CASE_TOKENS.CONFIRM,
     ORDER_USE_CASE_TOKENS.CANCEL,
+    ORDER_USE_CASE_TOKENS.LIST,
   ],
 })
 export class OrderModule {}

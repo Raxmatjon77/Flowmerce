@@ -17,13 +17,14 @@
 
 ### Services
 
-The platform consists of 5 bounded contexts, each with its own database:
+The platform consists of 6 bounded contexts, each with its own database:
 
 - **Order Service** — order lifecycle management, workflow orchestration
 - **Payment Service** — payment processing, refunds
 - **Inventory Service** — stock management, reservations
 - **Shipping Service** — shipment creation, carrier tracking
 - **Notification Service** — email/SMS/push notifications
+- **Customer Service** — customer registration, profile management
 
 ---
 
@@ -75,6 +76,11 @@ src/
 ├── app.module.ts                    # Root NestJS module
 │
 ├── shared/                          # Cross-cutting concerns
+│   ├── config/                      # Typed config namespaces (@nestjs/config)
+│   │   ├── database.config.ts       # orderDb, paymentDb, inventoryDb, shippingDb, notificationDb, customerDb
+│   │   ├── kafka.config.ts          # kafka (brokers, clientId)
+│   │   ├── app.config.ts            # temporal, jwt, app, outbox, idempotency, worker
+│   │   └── index.ts                 # Barrel export
 │   ├── domain/
 │   │   ├── aggregate-root.base.ts   # Base class with domain event tracking
 │   │   ├── entity.base.ts           # Base entity with id, timestamps
@@ -85,24 +91,32 @@ src/
 │   │   ├── use-case.interface.ts    # IUseCase<TInput, TOutput>
 │   │   └── event-publisher.interface.ts  # IEventPublisher
 │   └── infrastructure/
+│       ├── auth/
+│       │   ├── auth.module.ts       # JWT module, guards, strategy
+│       │   ├── auth.controller.ts   # POST /auth/register, POST /auth/login
+│       │   ├── jwt.strategy.ts
+│       │   └── jwt-auth.guard.ts
 │       ├── database/
-│       │   └── kysely.module.ts     # Dynamic Kysely connection factory
+│       │   └── kysely.module.ts     # KyselyModule.forFeatureAsync factory
 │       ├── kafka/
 │       │   ├── kafka.constants.ts   # Topics, event types, consumer groups
-│       │   ├── kafka.module.ts      # Global Kafka client singleton
+│       │   ├── kafka.module.ts      # KafkaModule.forRootAsync singleton
 │       │   ├── kafka-producer.service.ts
 │       │   ├── kafka-consumer.service.ts
 │       │   ├── base-event-consumer.ts    # Shared consumer boilerplate
 │       │   └── outbox/
 │       │       └── outbox-publisher.service.ts  # Outbox pattern poller
 │       ├── temporal/
-│       │   ├── temporal.module.ts   # Global Temporal client
+│       │   ├── temporal.module.ts   # TemporalModule.forRootAsync singleton
 │       │   └── temporal.constants.ts # Task queues, workflow IDs
 │       └── idempotency/
 │           ├── idempotency.service.ts
 │           ├── idempotency.guard.ts
 │           ├── idempotency.interceptor.ts
 │           └── idempotent.decorator.ts
+│
+├── dashboard/                       # Admin dashboard (read-only aggregated views)
+│   └── presentation/controllers/dashboard.controller.ts
 │
 ├── order/                           # Order bounded context
 │   ├── domain/
@@ -164,6 +178,7 @@ src/
 ├── inventory/
 ├── shipping/
 ├── notification/
+├── customer/                        # Customer registration & profile
 │
 ├── health/                          # Health check module
 │   ├── presentation/controllers/health.controller.ts
@@ -452,6 +467,9 @@ export class OrderController {
 
 | Service | Method | Endpoint | Description |
 |---------|--------|----------|-------------|
+| Auth | POST | `/api/v1/auth/register` | Register new customer |
+| Auth | POST | `/api/v1/auth/login` | Login, returns JWT |
+| Order | GET | `/api/v1/orders` | List orders |
 | Order | POST | `/api/v1/orders` | Create order (idempotent) |
 | Order | GET | `/api/v1/orders/:id` | Get order by ID |
 | Order | POST | `/api/v1/orders/:id/confirm` | Send confirmation signal |
@@ -459,6 +477,7 @@ export class OrderController {
 | Payment | POST | `/api/v1/payments` | Process payment |
 | Payment | GET | `/api/v1/payments/:id` | Get payment by ID |
 | Payment | POST | `/api/v1/payments/:id/refund` | Refund payment |
+| Inventory | GET | `/api/v1/inventory` | List all inventory |
 | Inventory | GET | `/api/v1/inventory/:id` | Get item by ID |
 | Inventory | GET | `/api/v1/inventory/sku/:sku` | Get item by SKU |
 | Inventory | POST | `/api/v1/inventory/reserve` | Reserve inventory |
@@ -468,6 +487,14 @@ export class OrderController {
 | Shipping | PATCH | `/api/v1/shipments/:id/status` | Update status |
 | Notification | POST | `/api/v1/notifications` | Send notification |
 | Notification | GET | `/api/v1/notifications?recipientId=` | List by recipient |
+| Dashboard | GET | `/api/v1/dashboard/overview` | Aggregated system stats |
+| Dashboard | GET | `/api/v1/dashboard/orders` | All orders |
+| Dashboard | GET | `/api/v1/dashboard/inventory` | All inventory |
+| Dashboard | GET | `/api/v1/dashboard/payments` | All payments |
+| Dashboard | GET | `/api/v1/dashboard/shipments` | All shipments |
+| Dashboard | GET | `/api/v1/dashboard/notifications` | All notifications |
+| Dashboard | GET | `/api/v1/dashboard/health` | Infrastructure health |
+| Dashboard | GET | `/api/v1/dashboard/activity` | Recent activity |
 | Health | GET | `/health` | Full health check |
 | Health | GET | `/health/live` | Liveness probe |
 | Health | GET | `/health/ready` | Readiness probe |
@@ -681,28 +708,28 @@ async confirmOrder(orderId: string) {
 
 Each service has its own PostgreSQL database (no shared tables):
 
-| Service | Database | Port | Token |
-|---------|----------|------|-------|
-| Order | order_db | 5432 | KYSELY_ORDER_DB |
-| Payment | payment_db | 5433 | KYSELY_PAYMENT_DB |
-| Inventory | inventory_db | 5434 | KYSELY_INVENTORY_DB |
-| Shipping | shipping_db | 5435 | KYSELY_SHIPPING_DB |
-| Notification | notification_db | 5436 | KYSELY_NOTIFICATION_DB |
+| Service | Database | Port | Config Namespace | Token |
+|---------|----------|------|-----------------|-------|
+| Order | order_db | 5432 | `orderDb` | KYSELY_ORDER_DB |
+| Payment | payment_db | 5433 | `paymentDb` | KYSELY_PAYMENT_DB |
+| Inventory | inventory_db | 5434 | `inventoryDb` | KYSELY_INVENTORY_DB |
+| Shipping | shipping_db | 5435 | `shippingDb` | KYSELY_SHIPPING_DB |
+| Notification | notification_db | 5436 | `notificationDb` | KYSELY_NOTIFICATION_DB |
+| Customer | customer_db | 5438 | `customerDb` | KYSELY_CUSTOMER_DB |
 
 ### Kysely Module
 
-The `KyselyModule.forFeature<T>()` factory creates typed database connections:
+The `KyselyModule.forFeatureAsync<T>()` factory creates typed database connections using `ConfigService` — pool creation is deferred until after DI is ready:
 
 ```typescript
-KyselyModule.forFeature<OrderDatabase>({
-  host: process.env.ORDER_DB_HOST || 'localhost',
-  port: parseInt(process.env.ORDER_DB_PORT || '5432', 10),
-  user: 'order_user',
-  password: 'order_pass',
-  database: 'order_db',
-  token: KYSELY_ORDER_DB,  // Injection token
+KyselyModule.forFeatureAsync<OrderDatabase>({
+  token: KYSELY_ORDER_DB,
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => config.get<DbConfig>('orderDb')!,
 })
 ```
+
+`process.env` reads are centralised in `src/shared/config/database.config.ts` via `registerAs`. No other file should read `process.env` for database config.
 
 ### Migrations
 

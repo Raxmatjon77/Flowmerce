@@ -38,6 +38,19 @@ Base URL: `http://localhost:3000`
 
 All endpoints (except health and inventory GET) require a JWT token.
 
+### Register a New Customer
+
+```bash
+curl -s -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "customer@example.com",
+    "password": "securepass123",
+    "firstName": "Jane",
+    "lastName": "Doe"
+  }' | jq .
+```
+
 ### Login as Customer
 
 ```bash
@@ -274,6 +287,34 @@ curl -s -X POST http://localhost:3000/api/v1/notifications \
 # Get notifications for a recipient
 curl -s "http://localhost:3000/api/v1/notifications?recipientId=customer-001" \
   -H "Authorization: Bearer $TOKEN" | jq .
+```
+
+### Dashboard (Admin — aggregated read-only views)
+
+```bash
+# System overview
+curl -s http://localhost:3000/api/v1/dashboard/overview \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# All orders with statuses
+curl -s http://localhost:3000/api/v1/dashboard/orders \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# All inventory items
+curl -s http://localhost:3000/api/v1/dashboard/inventory \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# All payments
+curl -s http://localhost:3000/api/v1/dashboard/payments \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# All shipments
+curl -s http://localhost:3000/api/v1/dashboard/shipments \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# Recent activity feed
+curl -s http://localhost:3000/api/v1/dashboard/activity \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
 ```
 
 ### Health Checks (No auth required)

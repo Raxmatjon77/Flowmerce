@@ -116,6 +116,58 @@ Rules:
 
 ---
 
+## 5a. Configuration Management (`@nestjs/config`)
+
+All environment variables MUST go through `@nestjs/config`. Direct `process.env` access is forbidden except inside `registerAs` factory functions.
+
+### Config Namespaces (`src/shared/config/`)
+
+```
+database.config.ts   → orderDb, paymentDb, inventoryDb, shippingDb, notificationDb, customerDb
+kafka.config.ts      → kafka (brokers, clientId)
+app.config.ts        → temporal, jwt, app, outbox, idempotency, worker
+index.ts             → barrel export
+```
+
+Each namespace uses `registerAs`:
+
+```typescript
+export const orderDbConfig = registerAs('orderDb', (): DbConfig => ({
+  host: process.env.ORDER_DB_HOST ?? 'localhost',
+  port: parseInt(process.env.ORDER_DB_PORT ?? '5432', 10),
+  // ...
+}));
+```
+
+### Module Registration
+
+`ConfigModule.forRoot` MUST be the FIRST import in `AppModule`:
+
+```typescript
+ConfigModule.forRoot({ isGlobal: true, load: [all 12 configs], envFilePath: '.env' })
+```
+
+### Infrastructure Module Pattern (`forFeatureAsync` / `forRootAsync`)
+
+All infrastructure modules that depend on config MUST use the async factory pattern to defer instantiation until after the DI container is ready:
+
+```typescript
+KyselyModule.forFeatureAsync<OrderDatabase>({
+  token: KYSELY_ORDER_DB,
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => config.get<DbConfig>('orderDb')!,
+})
+
+KafkaModule.forRootAsync({
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => config.get<KafkaConfig>('kafka')!,
+})
+```
+
+**Never** use `forFeature()` with inline `process.env` calls — module decorator evaluation happens before dotenv loads.
+
+---
+
 ## 6. Error Handling & Reliability
 
 You MUST include:

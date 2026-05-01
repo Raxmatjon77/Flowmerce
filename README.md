@@ -73,6 +73,7 @@ A production-grade distributed system for order processing, built with **NestJS*
 | **Inventory** | Stock management, reservations | 5434 |
 | **Shipping** | Shipment creation, tracking | 5435 |
 | **Notification** | User notifications (email, SMS, push) | 5436 |
+| **Customer** | Customer registration, profile management | 5438 |
 
 Each service has its own **bounded context** and **isolated database** — no shared state.
 
@@ -144,6 +145,9 @@ src/
 │   ├── worker.module.ts
 │   └── worker.ts
 │
+├── dashboard/                    # Admin dashboard (read-only aggregated views)
+│   └── presentation/controllers/
+│
 ├── order/                        # Order bounded context
 │   ├── domain/                   # Business logic (entities, value objects)
 │   ├── application/              # Use cases, DTOs, ports
@@ -154,12 +158,19 @@ src/
 ├── inventory/                    # Same structure
 ├── shipping/                     # Same structure
 ├── notification/                 # Same structure
+├── customer/                     # Customer registration & profile
 │
 └── shared/                       # Cross-cutting concerns
+    ├── config/                   # Typed config namespaces (@nestjs/config)
+    │   ├── database.config.ts    # DB configs for all 6 services
+    │   ├── kafka.config.ts       # Kafka brokers/clientId
+    │   ├── app.config.ts         # Temporal, JWT, app, outbox, idempotency
+    │   └── index.ts
     ├── domain/                   # Base classes (Entity, ValueObject)
     ├── application/              # Interfaces (EventPublisher, UseCase)
     └── infrastructure/
-        ├── database/             # Kysely module
+        ├── auth/                 # JWT strategy, guards, auth controller
+        ├── database/             # KyselyModule.forFeatureAsync factory
         ├── kafka/                # Producer, Consumer, Outbox
         ├── temporal/             # Temporal client module
         └── idempotency/          # Idempotency key handling
@@ -221,8 +232,10 @@ npm run worker
 | Service | URL |
 |---------|-----|
 | **API** | http://localhost:3000 |
+| **Swagger UI** | http://localhost:3000/api/docs |
 | **Health Check** | http://localhost:3000/health |
 | **Temporal UI** | http://localhost:8233 |
+| **Kafka UI** | http://localhost:8080 |
 
 ---
 
@@ -236,13 +249,35 @@ GET /health/live     # Liveness probe (is process alive?)
 GET /health/ready    # Readiness probe (can accept traffic?)
 ```
 
+### Auth
+
+```bash
+POST   /api/v1/auth/register       # Register new customer
+POST   /api/v1/auth/login          # Login, returns JWT
+```
+
 ### Orders
 
 ```bash
+GET    /api/v1/orders              # List orders
 POST   /api/v1/orders              # Create order
 GET    /api/v1/orders/:id          # Get order by ID
 POST   /api/v1/orders/:id/confirm  # Confirm order (Temporal signal)
 POST   /api/v1/orders/:id/cancel   # Cancel order
+```
+
+### Dashboard (Admin)
+
+```bash
+GET    /api/v1/dashboard/overview      # Aggregated system stats
+GET    /api/v1/dashboard/orders        # All orders
+GET    /api/v1/dashboard/orders/:id    # Order detail
+GET    /api/v1/dashboard/inventory     # All inventory
+GET    /api/v1/dashboard/payments      # All payments
+GET    /api/v1/dashboard/shipments     # All shipments
+GET    /api/v1/dashboard/notifications # All notifications
+GET    /api/v1/dashboard/health        # Infrastructure health
+GET    /api/v1/dashboard/activity      # Recent activity
 ```
 
 ### Create Order Example
@@ -355,14 +390,23 @@ async createOrder(@Body() dto: CreateOrderDto) {
 ## 🧪 NPM Scripts
 
 ```bash
-npm run start           # Start API server
-npm run start:dev       # Start with watch mode
-npm run worker          # Start Temporal worker
-npm run worker:dev      # Start worker with watch mode
-npm run build           # Build for production
-npm run migrate:all     # Run all database migrations
-npm run seed:inventory  # Seed inventory data
-npm run test:order      # Test order creation flow
+npm run start              # Start API server
+npm run start:dev          # Start with watch mode
+npm run worker             # Start Temporal worker
+npm run worker:dev         # Start worker with watch mode
+npm run build              # Build for production
+
+# Migrations (per service or all at once)
+npm run migrate:all        # Run all database migrations
+npm run migrate:order
+npm run migrate:payment
+npm run migrate:inventory
+npm run migrate:shipping
+npm run migrate:notification
+npm run migrate:customer
+
+npm run seed:inventory     # Seed inventory with sample products
+npm run test:order         # Run full order lifecycle test script
 ```
 
 ---
@@ -393,10 +437,14 @@ readinessProbe:
 
 - [x] Health check endpoints
 - [x] Idempotency keys
+- [x] Authentication/Authorization (JWT)
+- [x] Swagger API documentation
+- [x] Admin dashboard (aggregated views)
+- [x] Customer portal (registration)
+- [x] Typed config namespaces (`@nestjs/config`)
 - [ ] Distributed tracing (OpenTelemetry)
 - [ ] Structured logging (JSON)
 - [ ] Rate limiting
-- [ ] Authentication/Authorization (JWT)
 - [ ] Circuit breaker pattern
 - [ ] Prometheus metrics
 - [ ] Integration tests (Testcontainers)

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { IdempotencyModule } from '@shared/infrastructure/idempotency';
 import { KyselyModule } from '@shared/infrastructure/database/kysely.module';
+import { DbConfig } from '@shared/config';
 import {
   ShippingDatabase,
   KYSELY_SHIPPING_DB,
@@ -25,13 +27,10 @@ import { ShippingOutboxPollerService } from './infrastructure/kafka/shipping-out
 @Module({
   imports: [
     IdempotencyModule,
-    KyselyModule.forFeature<ShippingDatabase>({
-      host: process.env.SHIPPING_DB_HOST || 'localhost',
-      port: parseInt(process.env.SHIPPING_DB_PORT || '5435', 10),
-      user: process.env.SHIPPING_DB_USER || 'shipping_user',
-      password: process.env.SHIPPING_DB_PASSWORD || 'shipping_pass',
-      database: process.env.SHIPPING_DB_NAME || 'shipping_db',
+    KyselyModule.forFeatureAsync<ShippingDatabase>({
       token: KYSELY_SHIPPING_DB,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => config.get<DbConfig>('shippingDb')!,
     }),
   ],
   controllers: [ShippingController],

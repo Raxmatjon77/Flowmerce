@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 export const IDEMPOTENCY_SERVICE = Symbol('IDEMPOTENCY_SERVICE');
 
@@ -37,10 +38,8 @@ export class IdempotencyService implements IIdempotencyService {
   private readonly processing = new Set<string>();
   private readonly ttlMs: number;
 
-  constructor() {
-    this.ttlMs = parseInt(process.env.IDEMPOTENCY_TTL_MS || '86400000', 10); // 24 hours default
-    
-    // Cleanup expired keys every hour
+  constructor(config: ConfigService) {
+    this.ttlMs = config.get<number>('idempotency.ttlMs')!;
     setInterval(() => this.cleanup(), 3600000);
   }
 

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { IdempotencyModule } from '@shared/infrastructure/idempotency';
 import { KyselyModule } from '@shared/infrastructure/database/kysely.module';
+import { DbConfig } from '@shared/config';
 import {
   InventoryDatabase,
   KYSELY_INVENTORY_DB,
@@ -22,13 +24,10 @@ import { InventoryOutboxPollerService } from './infrastructure/kafka/inventory-o
 @Module({
   imports: [
     IdempotencyModule,
-    KyselyModule.forFeature<InventoryDatabase>({
-      host: process.env.INVENTORY_DB_HOST || 'localhost',
-      port: parseInt(process.env.INVENTORY_DB_PORT || '5434', 10),
-      user: process.env.INVENTORY_DB_USER || 'inventory_user',
-      password: process.env.INVENTORY_DB_PASSWORD || 'inventory_pass',
-      database: process.env.INVENTORY_DB_NAME || 'inventory_db',
+    KyselyModule.forFeatureAsync<InventoryDatabase>({
       token: KYSELY_INVENTORY_DB,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => config.get<DbConfig>('inventoryDb')!,
     }),
   ],
   controllers: [InventoryController],

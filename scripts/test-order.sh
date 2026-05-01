@@ -9,16 +9,15 @@ NC='\033[0m' # No Color
 
 API_URL="${API_URL:-http://localhost:3000}"
 
-get_token () {
+get_admin_token() {
   local user_id="$1"
-  local role="$2"
 
   local resp
   resp=$(curl -s -X POST "${API_URL}/api/v1/auth/login" \
     -H "Content-Type: application/json" \
-    -d "{\"userId\":\"${user_id}\",\"role\":\"${role}\"}")
+    -d "{\"userId\":\"${user_id}\",\"role\":\"admin\"}")
 
-  echo "$resp" | python3 -c 'import sys, json; print(json.load(sys.stdin)["accessToken"])' 2>/dev/null
+  echo "$resp" | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data.get("accessToken", ""))' 2>/dev/null
 }
 
 echo -e "${BLUE}========================================${NC}"
@@ -27,23 +26,25 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 
 # Login
-echo -e "${YELLOW}[0/4] Logging in...${NC}"
-CUSTOMER_TOKEN=$(get_token "cust-test-001" "customer")
-ADMIN_TOKEN=$(get_token "admin-test-001" "admin")
+echo -e "${YELLOW}[0/4] Getting admin token...${NC}"
+ADMIN_TOKEN=$(get_admin_token "admin-test-001")
 
-if [[ -z "$CUSTOMER_TOKEN" || -z "$ADMIN_TOKEN" ]]; then
-  echo -e "${RED}❌ Failed to login and obtain JWT tokens${NC}"
+if [[ -z "$ADMIN_TOKEN" ]]; then
+  echo -e "${RED}❌ Failed to get admin token${NC}"
+  echo "Response: $(curl -s -X POST "${API_URL}/api/v1/auth/login" \
+    -H "Content-Type: application/json" \
+    -d '{"userId":"admin-test-001","role":"admin"}')"
   exit 1
 fi
 
-echo -e "${GREEN}✅ Logged in (customer + admin tokens obtained)${NC}"
+echo -e "${GREEN}✅ Admin token obtained${NC}"
 echo ""
 
-# 1. Create Order
+# 1. Create Order (as admin, can create order for any customer)
 echo -e "${YELLOW}[1/4] Creating order...${NC}"
 ORDER_RESPONSE=$(curl -s -X POST "${API_URL}/api/v1/orders" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${CUSTOMER_TOKEN}" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
   -d '{
     "customerId": "cust-test-001",
     "items": [
@@ -71,12 +72,15 @@ ORDER_RESPONSE=$(curl -s -X POST "${API_URL}/api/v1/orders" \
 
 # Check if order was created
 if echo "$ORDER_RESPONSE" | grep -q '"id"'; then
-  ORDER_ID=$(echo "$ORDER_RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+  ORDER_ID=$(echo "$ORDER_RESPONSE" | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data.get("id", ""))' 2>/dev/null)
+  if [[ -z "$ORDER_ID" ]]; then
+    ORDER_ID=$(echo "$ORDER_RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+  fi
   echo -e "${GREEN}✅ Order created: ${ORDER_ID}${NC}"
   echo "$ORDER_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$ORDER_RESPONSE"
 else
   echo -e "${RED}❌ Failed to create order${NC}"
-  echo "$ORDER_RESPONSE"
+  echo "$ORDER_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$ORDER_RESPONSE"
   exit 1
 fi
 
@@ -86,7 +90,7 @@ echo ""
 echo -e "${YELLOW}[2/4] Fetching order status...${NC}"
 sleep 2  # Wait for workflow to start
 GET_RESPONSE=$(curl -s "${API_URL}/api/v1/orders/${ORDER_ID}" \
-  -H "Authorization: Bearer ${CUSTOMER_TOKEN}")
+  -H "Authorization: Bearer ${ADMIN_TOKEN}")
 echo "$GET_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$GET_RESPONSE"
 
 echo ""
@@ -103,7 +107,7 @@ echo ""
 echo -e "${YELLOW}[4/4] Final order status...${NC}"
 sleep 3  # Wait for workflow to process
 FINAL_RESPONSE=$(curl -s "${API_URL}/api/v1/orders/${ORDER_ID}" \
-  -H "Authorization: Bearer ${CUSTOMER_TOKEN}")
+  -H "Authorization: Bearer ${ADMIN_TOKEN}")
 echo "$FINAL_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$FINAL_RESPONSE"
 
 echo ""

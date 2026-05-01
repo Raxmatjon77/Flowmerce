@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { KyselyModule } from '../../shared/infrastructure/database/kysely.module';
+import { DbConfig } from '../../shared/config';
 import { CustomerDatabase, KYSELY_CUSTOMER_DB } from './database/tables/customer.table';
 import { KyselyCustomerRepository } from './database/repositories/customer.repository';
 import { CUSTOMER_REPOSITORY, ICustomerRepository } from '../domain/repositories/customer.repository.interface';
@@ -9,20 +11,14 @@ import { CUSTOMER_USE_CASE_TOKENS } from '../application/injection-tokens';
 
 @Module({
   imports: [
-    KyselyModule.forFeature<CustomerDatabase>({
-      host: process.env.CUSTOMER_DB_HOST || 'localhost',
-      port: parseInt(process.env.CUSTOMER_DB_PORT || '5438', 10),
-      user: process.env.CUSTOMER_DB_USER || 'customer_user',
-      password: process.env.CUSTOMER_DB_PASSWORD || 'customer_pass',
-      database: process.env.CUSTOMER_DB_NAME || 'customer_db',
+    KyselyModule.forFeatureAsync<CustomerDatabase>({
       token: KYSELY_CUSTOMER_DB,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => config.get<DbConfig>('customerDb')!,
     }),
   ],
   providers: [
-    // Repository binding
     { provide: CUSTOMER_REPOSITORY, useClass: KyselyCustomerRepository },
-
-    // Use cases
     {
       provide: CUSTOMER_USE_CASE_TOKENS.REGISTER,
       useFactory: (customerRepository: ICustomerRepository) =>

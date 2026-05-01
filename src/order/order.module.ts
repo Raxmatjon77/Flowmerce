@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { KyselyModule } from '@shared/infrastructure/database/kysely.module';
+import { DbConfig } from '@shared/config';
 import { OrderDatabase } from './infrastructure/database/tables/order.table';
 import {
   KyselyOrderRepository,
@@ -47,13 +49,10 @@ import { NotificationModule } from '@notification/notification.module';
 
 @Module({
   imports: [
-    KyselyModule.forFeature<OrderDatabase>({
-      host: process.env.ORDER_DB_HOST || 'localhost',
-      port: parseInt(process.env.ORDER_DB_PORT || '5432', 10),
-      user: process.env.ORDER_DB_USER || 'order_user',
-      password: process.env.ORDER_DB_PASSWORD || 'order_pass',
-      database: process.env.ORDER_DB_NAME || 'order_db',
+    KyselyModule.forFeatureAsync<OrderDatabase>({
       token: KYSELY_ORDER_DB,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => config.get<DbConfig>('orderDb')!,
     }),
     PaymentModule,
     InventoryModule,

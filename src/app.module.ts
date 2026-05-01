@@ -1,4 +1,19 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import {
+  appConfig,
+  jwtConfig,
+  kafkaConfig,
+  temporalConfig,
+  outboxConfig,
+  idempotencyConfig,
+  orderDbConfig,
+  paymentDbConfig,
+  inventoryDbConfig,
+  shippingDbConfig,
+  notificationDbConfig,
+  customerDbConfig,
+} from '@shared/config';
 import { KafkaModule } from '@shared/infrastructure/kafka/kafka.module';
 import { TemporalModule } from '@shared/infrastructure/temporal/temporal.module';
 import { IdempotencyModule } from '@shared/infrastructure/idempotency';
@@ -10,31 +25,46 @@ import { InventoryModule } from '@inventory/inventory.module';
 import { ShippingModule } from '@shipping/shipping.module';
 import { NotificationModule } from '@notification/notification.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { KafkaConfig } from '@shared/config/kafka.config';
 
 @Module({
   imports: [
-    // Authentication & Authorization (global guards)
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [
+        appConfig,
+        jwtConfig,
+        kafkaConfig,
+        temporalConfig,
+        outboxConfig,
+        idempotencyConfig,
+        orderDbConfig,
+        paymentDbConfig,
+        inventoryDbConfig,
+        shippingDbConfig,
+        notificationDbConfig,
+        customerDbConfig,
+      ],
+      envFilePath: '.env',
+    }),
+
     AuthModule,
-
-    // Health checks (no dependencies, loads first)
     HealthModule,
-
-    // Idempotency (global module)
     IdempotencyModule,
 
-    // Global infrastructure modules
-    KafkaModule.forRoot({
-      brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
-      clientId: process.env.KAFKA_CLIENT_ID || 'distributed-order-platform',
+    KafkaModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => config.get<KafkaConfig>('kafka')!,
     }),
 
-    // Temporal is async — uses forRoot which returns a Promise<DynamicModule>
-    TemporalModule.forRoot({
-      address: process.env.TEMPORAL_ADDRESS || 'localhost:7233',
-      namespace: process.env.TEMPORAL_NAMESPACE || 'default',
+    TemporalModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        address: config.get<string>('temporal.address')!,
+        namespace: config.get<string>('temporal.namespace')!,
+      }),
     }),
 
-    // Feature modules
     OrderModule,
     PaymentModule,
     InventoryModule,

@@ -54,7 +54,9 @@ export class OutboxPublisherService {
           return;
         }
 
-        this.logger.error(`Outbox polling error: ${error}`);
+        this.logger.error(
+          `Outbox polling error: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }, intervalMs);
 

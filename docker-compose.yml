@@ -8,8 +8,9 @@ services:
       POSTGRES_USER: order_user
       POSTGRES_PASSWORD: order_pass
       POSTGRES_DB: order_db
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - '5432:5432'
+      - '15432:5432'
     volumes:
       - order_data:/var/lib/postgresql/data
 
@@ -19,8 +20,9 @@ services:
       POSTGRES_USER: payment_user
       POSTGRES_PASSWORD: payment_pass
       POSTGRES_DB: payment_db
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - '5433:5432'
+      - '15433:5432'
     volumes:
       - payment_data:/var/lib/postgresql/data
 
@@ -30,8 +32,9 @@ services:
       POSTGRES_USER: inventory_user
       POSTGRES_PASSWORD: inventory_pass
       POSTGRES_DB: inventory_db
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - '5434:5432'
+      - '15434:5432'
     volumes:
       - inventory_data:/var/lib/postgresql/data
 
@@ -41,8 +44,9 @@ services:
       POSTGRES_USER: shipping_user
       POSTGRES_PASSWORD: shipping_pass
       POSTGRES_DB: shipping_db
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - '5435:5432'
+      - '15435:5432'
     volumes:
       - shipping_data:/var/lib/postgresql/data
 
@@ -52,8 +56,9 @@ services:
       POSTGRES_USER: notification_user
       POSTGRES_PASSWORD: notification_pass
       POSTGRES_DB: notification_db
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - '5436:5432'
+      - '15436:5432'
     volumes:
       - notification_data:/var/lib/postgresql/data
 
@@ -63,8 +68,9 @@ services:
       POSTGRES_USER: customer_user
       POSTGRES_PASSWORD: customer_pass
       POSTGRES_DB: customer_db
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - '5438:5432'
+      - '15438:5432'
     volumes:
       - customer_data:/var/lib/postgresql/data
 

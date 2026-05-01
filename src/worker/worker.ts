@@ -1,5 +1,7 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NativeConnection, Worker, Runtime } from '@temporalio/worker';
 import { WorkerModule } from './worker.module';
 import { OrderActivitiesImpl } from '@order/infrastructure/temporal/activities/order-activities.impl';
@@ -62,6 +64,8 @@ function parseDuration(duration: string): number {
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('TemporalWorker');
+  // getConfig() reads process.env directly — acceptable here because worker.ts runs
+  // before the NestJS context is created (ConfigService isn't available yet).
   const config = getConfig();
 
   logger.log('Starting Temporal Worker...');

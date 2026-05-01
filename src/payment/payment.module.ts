@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { IdempotencyModule } from '@shared/infrastructure/idempotency';
 import { KyselyModule } from '@shared/infrastructure/database/kysely.module';
+import { DbConfig } from '@shared/config';
 import { PaymentDatabase } from './infrastructure/database/tables/payment.table';
 import {
   KyselyPaymentRepository,
@@ -25,13 +27,10 @@ import { PaymentOutboxPollerService } from './infrastructure/kafka/payment-outbo
 @Module({
   imports: [
     IdempotencyModule,
-    KyselyModule.forFeature<PaymentDatabase>({
-      host: process.env.PAYMENT_DB_HOST || 'localhost',
-      port: parseInt(process.env.PAYMENT_DB_PORT || '5433', 10),
-      user: process.env.PAYMENT_DB_USER || 'payment_user',
-      password: process.env.PAYMENT_DB_PASSWORD || 'payment_pass',
-      database: process.env.PAYMENT_DB_NAME || 'payment_db',
+    KyselyModule.forFeatureAsync<PaymentDatabase>({
       token: KYSELY_PAYMENT_DB,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => config.get<DbConfig>('paymentDb')!,
     }),
   ],
   controllers: [PaymentController],

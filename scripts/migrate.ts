@@ -1,5 +1,8 @@
+import * as dotenv from 'dotenv';
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
+
+dotenv.config();
 
 // Migration imports
 import * as orderMigration from '../src/order/infrastructure/database/migrations/001_create_orders';
@@ -82,8 +85,18 @@ const databases: Record<string, { config: DbConfig; migration: { up: (db: Kysely
 
 async function runMigration(name: string): Promise<void> {
   const { config, migration } = databases[name];
-  
-  const pool = new Pool(config);
+
+  console.log(`Connecting to ${name} database at ${config.host}:${config.port}...`);
+  const pool = new Pool({
+    ...config,
+    ssl: false,
+    connectionTimeoutMillis: 5000,
+  });
+
+  pool.on('error', (err) => {
+    console.error(`Pool error for ${name}:`, err);
+  });
+
   const db = new Kysely<unknown>({
     dialect: new PostgresDialect({ pool }),
   });

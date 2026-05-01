@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { IdempotencyModule } from '@shared/infrastructure/idempotency';
 import { KyselyModule } from '@shared/infrastructure/database/kysely.module';
+import { DbConfig } from '@shared/config';
 import {
   NotificationDatabase,
   KYSELY_NOTIFICATION_DB,
@@ -27,13 +29,10 @@ import { NotificationOutboxPollerService } from './infrastructure/kafka/notifica
 @Module({
   imports: [
     IdempotencyModule,
-    KyselyModule.forFeature<NotificationDatabase>({
-      host: process.env.NOTIFICATION_DB_HOST || 'localhost',
-      port: parseInt(process.env.NOTIFICATION_DB_PORT || '5436', 10),
-      user: process.env.NOTIFICATION_DB_USER || 'notification_user',
-      password: process.env.NOTIFICATION_DB_PASSWORD || 'notification_pass',
-      database: process.env.NOTIFICATION_DB_NAME || 'notification_db',
+    KyselyModule.forFeatureAsync<NotificationDatabase>({
       token: KYSELY_NOTIFICATION_DB,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => config.get<DbConfig>('notificationDb')!,
     }),
   ],
   controllers: [NotificationController],
